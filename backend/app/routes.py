@@ -84,3 +84,22 @@ def simulate_vehicle_terrain(
         return {"message": "No telemetry data found"}
 
     return result
+
+@router.get("/vehicle/{vehicle_id}/path")
+def get_vehicle_path(vehicle_id: str, limit: int = 100, db: Session = Depends(get_db)):
+    records = (
+        db.query(Telemetry)
+        .filter(Telemetry.vehicle_id == vehicle_id)
+        .order_by(desc(Telemetry.timestamp))
+        .limit(limit)
+        .all()
+    )
+
+    return [
+        {
+            "latitude": r.latitude,
+            "longitude": r.longitude,
+            "timestamp": r.timestamp
+        }
+        for r in records
+    ]
