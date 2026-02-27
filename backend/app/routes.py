@@ -5,6 +5,7 @@ from sqlalchemy import desc
 from .database import SessionLocal
 from .models import Telemetry, Vehicle
 from .schemas import TelemetryCreate, VehicleCreate, VehicleResponse
+from .health_service import calculate_health
 
 router = APIRouter()
 
@@ -59,3 +60,12 @@ def create_vehicle(vehicle: VehicleCreate, db: Session = Depends(get_db)):
 @router.get("/vehicles", response_model=list[VehicleResponse])
 def get_vehicles(db: Session = Depends(get_db)):
     return db.query(Vehicle).all()
+
+@router.get("/vehicle/{number_plate}/health")
+def get_vehicle_health(number_plate: str, db: Session = Depends(get_db)):
+    result = calculate_health(db, number_plate)
+
+    if not result:
+        return {"message": "No telemetry data found"}
+
+    return result
