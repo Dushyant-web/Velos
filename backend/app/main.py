@@ -9,7 +9,7 @@ app = FastAPI()
 allow_origins=[
     "http://localhost:5500",
     "http://127.0.0.1:5500",
-    "https://your-netlify-site.netlify.app"
+    "https://velosv2.netlify.app/"
 ]
 
 app.add_middleware(
