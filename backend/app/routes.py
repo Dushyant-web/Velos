@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
+from .simulation_service import simulate_terrain
+from fastapi import Body
 
 from .database import SessionLocal
 from .models import Telemetry, Vehicle
@@ -64,6 +66,19 @@ def get_vehicles(db: Session = Depends(get_db)):
 @router.get("/vehicle/{number_plate}/health")
 def get_vehicle_health(number_plate: str, db: Session = Depends(get_db)):
     result = calculate_health(db, number_plate)
+
+    if not result:
+        return {"message": "No telemetry data found"}
+
+    return result
+
+@router.post("/vehicle/{number_plate}/simulate-terrain")
+def simulate_vehicle_terrain(
+    number_plate: str,
+    terrain: str = Body(...),
+    db: Session = Depends(get_db)
+):
+    result = simulate_terrain(db, number_plate, terrain)
 
     if not result:
         return {"message": "No telemetry data found"}
