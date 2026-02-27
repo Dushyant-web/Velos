@@ -7,13 +7,18 @@ async function getTelemetry() {
         return;
     }
 
-    // 🔥 Dynamic backend URL
+    // Dynamic backend URL (NO trailing slash)
     const BASE_URL = window.location.hostname === "localhost"
         ? "http://127.0.0.1:8000"
-        : "https://velos-production.up.railway.app/";  // <-- your Railway URL
+        : "https://velos-production.up.railway.app";
 
     try {
         const response = await fetch(`${BASE_URL}/telemetry/${vehicleId}?limit=1`);
+
+        if (!response.ok) {
+            throw new Error("Server error");
+        }
+
         const data = await response.json();
 
         if (!data || data.length === 0) {
@@ -34,8 +39,9 @@ async function getTelemetry() {
             <p><b>Tire Pressure:</b> ${vehicle.tire_pressure}</p>
             <p><b>Timestamp:</b> ${vehicle.timestamp}</p>
         `;
+
     } catch (error) {
         resultDiv.innerHTML = "Error fetching data.";
-        console.error(error);
+        console.error("Fetch error:", error);
     }
 }
