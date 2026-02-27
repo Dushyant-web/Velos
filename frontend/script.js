@@ -7,11 +7,16 @@ async function getTelemetry() {
         return;
     }
 
+    // 🔥 Dynamic backend URL
+    const BASE_URL = window.location.hostname === "localhost"
+        ? "http://127.0.0.1:8000"
+        : "https://velos-production.up.railway.app/";  // <-- your Railway URL
+
     try {
-        const response = await fetch(`http://127.0.0.1:8000/telemetry/${vehicleId}?limit=1`);
+        const response = await fetch(`${BASE_URL}/telemetry/${vehicleId}?limit=1`);
         const data = await response.json();
 
-        if (data.length === 0) {
+        if (!data || data.length === 0) {
             resultDiv.innerHTML = "No data found.";
             return;
         }
