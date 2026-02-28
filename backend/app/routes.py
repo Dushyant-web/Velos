@@ -4,13 +4,14 @@ from sqlalchemy import desc
 from datetime import datetime, timedelta
 from math import pow
 
+
 from .database import SessionLocal
 from .models import Telemetry, Vehicle
 from .schemas import TelemetryCreate, VehicleCreate, VehicleResponse
 from .health_service import calculate_health
 from .simulation_service import simulate_terrain
 from .alert_service import check_and_create_alert
-from .models import Alert
+from .models import Telemetry, Vehicle, Alert
 
 router = APIRouter()
 

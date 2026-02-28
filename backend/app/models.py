@@ -4,6 +4,7 @@ from .database import Base
 from datetime import datetime
 
 
+
 # =========================
 # TELEMETRY TABLE
 # =========================
@@ -58,3 +59,4 @@ class Alert(Base):
 
     timestamp = Column(DateTime, default=datetime.utcnow)
     resolved = Column(Boolean, default=False)
+
