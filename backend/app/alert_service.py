@@ -34,3 +34,5 @@ def check_and_create_alert(db, vehicle_id):
 
     print("ALERT LIST:", alerts)
     print("ALERT FUNCTION CALLED")
+    print("HEALTH DICT KEYS:", health.keys())
+    print("ENGINE VALUE:", health.get("engine_health"))
