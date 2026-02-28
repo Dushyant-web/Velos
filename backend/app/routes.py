@@ -169,14 +169,14 @@ def project_life(
         db.query(Telemetry)
         .filter(Telemetry.vehicle_id == vehicle_id)
         .order_by(Telemetry.timestamp.desc())
-        .limit(50)
+        .limit(100)
         .all()
     )
 
     if not records:
         return {"error": "No data"}
 
-    # Calculate average stress per record
+    # --- STEP 1: calculate avg stress per record ---
     total_stress = 0
 
     for r in records:
@@ -193,24 +193,33 @@ def project_life(
 
         total_stress += stress
 
-    avg_stress_per_record = total_stress / len(records)
+    avg_stress = total_stress / len(records)
 
-    # Convert future time to number of records
-    seconds = (
-        years * 365 * 24 * 3600 +
-        months * 30 * 24 * 3600 +
-        hours * 3600
+    # --- STEP 2: Convert to yearly degradation rate ---
+    # 3 sec per record
+    records_per_hour = 3600 / 3
+    hourly_stress = avg_stress * records_per_hour
+
+    yearly_stress = hourly_stress * 24 * 365
+
+    # Normalize so max degradation over 20 years
+    degradation_factor = yearly_stress / 20
+
+    # --- STEP 3: Calculate requested future time ---
+    total_years_requested = (
+        years +
+        (months / 12) +
+        (hours / (24 * 365))
     )
 
-    records_in_future = seconds / 3  # since 1 record every 3 sec
+    total_life = 20.0
 
-    projected_damage = avg_stress_per_record * records_in_future
+    projected_life_remaining = max(
+        0,
+        total_life - (degradation_factor * total_years_requested)
+    )
 
-    total_life_years = 20.0
-
-    projected_life_remaining = max(0, total_life_years - projected_damage)
-
-    projected_health = (projected_life_remaining / total_life_years) * 100
+    projected_health = (projected_life_remaining / total_life) * 100
 
     return {
         "projected_health_percentage": round(projected_health, 2),
