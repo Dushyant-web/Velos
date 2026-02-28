@@ -41,6 +41,7 @@ async function getTelemetry() {
         `;
 
         loadVehiclePath(vehicleId);
+        loadHealthTrend(vehicleId);
 
     } catch (error) {
         resultDiv.innerHTML = "Error fetching data.";
@@ -85,4 +86,49 @@ async function loadVehiclePath(vehicleId) {
     marker = L.marker(latest).addTo(map)
         .bindPopup("Current Vehicle Location")
         .openPopup();
+}
+
+
+
+let healthChart;
+
+async function loadHealthTrend(vehicleId) {
+
+    const BASE_URL = window.location.hostname === "localhost"
+        ? "http://127.0.0.1:8000"
+        : "https://velos-production.up.railway.app";
+
+    const response = await fetch(`${BASE_URL}/vehicle/${vehicleId}/health-trend?limit=50`);
+    const data = await response.json();
+
+    const labels = data.map(p => new Date(p.timestamp).toLocaleTimeString());
+    const healthData = data.map(p => p.health_score);
+
+    const ctx = document.getElementById('healthChart').getContext('2d');
+
+    if (healthChart) {
+        healthChart.destroy();
+    }
+
+    healthChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Health Score',
+                data: healthData,
+                borderColor: 'lime',
+                fill: false,
+                tension: 0.3
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    min: 0,
+                    max: 100
+                }
+            }
+        }
+    });
 }
