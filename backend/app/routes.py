@@ -106,7 +106,7 @@ def get_vehicle_path(vehicle_id: str, limit: int = 100, db: Session = Depends(ge
 
 
 @router.get("/vehicle/{vehicle_id}/health-trend")
-def health_trend(vehicle_id: str, limit: int = 50, db: Session = Depends(get_db)):
+def health_trend(vehicle_id: str, limit: int = 100, db: Session = Depends(get_db)):
 
     records = (
         db.query(Telemetry)
@@ -116,24 +116,39 @@ def health_trend(vehicle_id: str, limit: int = 50, db: Session = Depends(get_db)
         .all()
     )
 
+    life_remaining = 20.0  # 20 year total vehicle life
+
     trend = []
 
     for r in records:
-        health_score = 100
 
-        # Same logic as calculate_health
-        if r.engine_temp > 110:
-            health_score -= 20
-        if r.battery_level < 30:
-            health_score -= 15
-        if r.fuel < 10:
-            health_score -= 10
+        stress = 0
+
+        # Temperature stress
+        if r.engine_temp > 95:
+            stress += 0.002
+
+        # High RPM stress
+        if r.rpm > 3500:
+            stress += 0.001
+
+        # Low battery stress
+        if r.battery_level < 40:
+            stress += 0.001
+
+        # Low fuel stress
+        if r.fuel < 20:
+            stress += 0.001
+
+        life_remaining -= stress
+        life_remaining = max(0, life_remaining)
+
+        health_score = (life_remaining / 20.0) * 100
 
         trend.append({
             "timestamp": r.timestamp,
-            "health_score": max(0, health_score),
-            "engine_temp": r.engine_temp,
-            "speed": r.speed
+            "health_score": round(health_score, 2),
+            "life_remaining_years": round(life_remaining, 3)
         })
 
     return trend
