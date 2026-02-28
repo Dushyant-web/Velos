@@ -244,3 +244,101 @@ def project_life(
         "predicted_failure_date": failure_date.strftime("%Y-%m-%d"),
         "stress_index": round(avg_stress, 4)
     }
+
+@router.post("/vehicle/{vehicle_id}/what-if")
+def what_if_simulation(
+    vehicle_id: str,
+    scenario: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """
+    scenario example:
+    {
+        "max_temp": 95,
+        "max_rpm": 3000,
+        "driving_style": "eco",   # eco / normal / aggressive
+        "maintenance_factor": 1.0 # 1 = perfect maintenance, >1 = poor
+    }
+    """
+
+    records = (
+        db.query(Telemetry)
+        .filter(Telemetry.vehicle_id == vehicle_id)
+        .order_by(Telemetry.timestamp.desc())
+        .limit(150)
+        .all()
+    )
+
+    if not records:
+        return {"error": "No telemetry data"}
+
+    max_temp = scenario.get("max_temp", 100)
+    max_rpm = scenario.get("max_rpm", 3500)
+    driving_style = scenario.get("driving_style", "normal")
+    maintenance_factor = scenario.get("maintenance_factor", 1.0)
+
+    style_multiplier = 1.0
+    if driving_style == "eco":
+        style_multiplier = 0.7
+    elif driving_style == "aggressive":
+        style_multiplier = 1.4
+
+    total_stress = 0
+
+    for r in records:
+        stress = 0
+
+        if r.engine_temp > max_temp:
+            stress += (r.engine_temp - max_temp) / 500
+
+        if r.rpm > max_rpm:
+            stress += (r.rpm - max_rpm) / 8000
+
+        if r.battery_level < 50:
+            stress += (50 - r.battery_level) / 600
+
+        if r.fuel < 25:
+            stress += (25 - r.fuel) / 600
+
+        total_stress += stress
+
+    avg_stress = (total_stress / len(records)) * style_multiplier * maintenance_factor
+
+    total_life = 20.0
+    base_yearly_wear = 1 / 20
+    yearly_degradation = base_yearly_wear * (1 + avg_stress)
+
+    projected_life = total_life - (yearly_degradation * 20)
+    projected_life = max(0, projected_life)
+
+    projected_health = (projected_life / total_life) * 100
+
+    return {
+        "what_if_health_percentage": round(projected_health, 2),
+        "what_if_life_years": round(projected_life, 2),
+        "stress_index": round(avg_stress, 4)
+    }
+
+@router.get("/vehicle/{vehicle_id}/recommended-scenarios")
+def recommended_scenarios(vehicle_id: str):
+
+    return {
+        "eco_mode": {
+            "max_temp": 95,
+            "max_rpm": 3000,
+            "driving_style": "eco",
+            "maintenance_factor": 0.9
+        },
+        "balanced_mode": {
+            "max_temp": 100,
+            "max_rpm": 3500,
+            "driving_style": "normal",
+            "maintenance_factor": 1.0
+        },
+        "performance_mode": {
+            "max_temp": 110,
+            "max_rpm": 4500,
+            "driving_style": "aggressive",
+            "maintenance_factor": 1.2
+        }
+    }
