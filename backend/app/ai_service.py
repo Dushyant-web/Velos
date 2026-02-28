@@ -190,3 +190,54 @@ def unified_ai_analysis(db: Session, vehicle_id: str):
         "risk_analysis": risk,
         "recommendations": recommendations
     }
+
+def compute_component_failure_probabilities(db: Session, vehicle_id: str):
+
+    from .health_service import calculate_health
+
+    health = calculate_health(db, vehicle_id)
+
+    if not health:
+        return None
+
+    def health_to_failure_prob(score):
+        normalized = 1 - (score / 100)
+        return min(1, normalized ** 1.8)
+
+    engine_prob = health_to_failure_prob(health["engine_health"])
+    battery_prob = health_to_failure_prob(health["battery_health"])
+    drivetrain_prob = health_to_failure_prob(health["drivetrain_health"])
+    fuel_prob = health_to_failure_prob(health["fuel_system_health"])
+
+    overall_prob = (
+        engine_prob * 0.4 +
+        battery_prob * 0.2 +
+        drivetrain_prob * 0.25 +
+        fuel_prob * 0.15
+    )
+
+    return {
+        "engine_failure_probability": round(engine_prob, 3),
+        "battery_failure_probability": round(battery_prob, 3),
+        "drivetrain_failure_probability": round(drivetrain_prob, 3),
+        "fuel_system_failure_probability": round(fuel_prob, 3),
+        "overall_vehicle_failure_probability": round(overall_prob, 3)
+    }
+
+
+def weibull_failure_probability(health_score, projected_days=90):
+
+    # shape parameter (wear-out type failure)
+    beta = 2.2  
+
+    # scale parameter depends on health
+    # healthier vehicle = larger eta
+    eta = 180 * (health_score / 100)
+
+    if eta <= 0:
+        return 1
+
+    survival = math.exp(-((projected_days / eta) ** beta))
+    failure_probability = 1 - survival
+
+    return round(min(1, failure_probability), 3)

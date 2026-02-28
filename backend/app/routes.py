@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from datetime import datetime, timedelta
 from math import pow
-from .ai_service import compute_engine_failure_probability,detect_anomalies,compute_risk_confidence,unified_ai_analysis
+from .ai_service import compute_engine_failure_probability,detect_anomalies,compute_risk_confidence,unified_ai_analysis,compute_component_failure_probabilities
 
 
 
@@ -679,3 +679,7 @@ def vehicle_risk_analysis(vehicle_id: str, db: Session = Depends(get_db)):
 @router.get("/vehicle/{vehicle_id}/ai-analysis")
 def vehicle_ai_analysis(vehicle_id: str, db: Session = Depends(get_db)):
     return unified_ai_analysis(db, vehicle_id)
+
+@router.get("/vehicle/{vehicle_id}/component-failure")
+def component_failure(vehicle_id: str, db: Session = Depends(get_db)):
+    return compute_component_failure_probabilities(db, vehicle_id)
