@@ -369,3 +369,118 @@ def maintenance_cost(vehicle_id: str, db: Session = Depends(get_db)):
         "drivetrain_repair_estimate": round(drivetrain_cost, 2),
         "total_estimated_maintenance_cost": round(total_cost, 2)
     }
+
+@router.post("/vehicle/{vehicle_id}/compare")
+def compare_scenario(
+    vehicle_id: str,
+    scenario: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+
+    # ---------- CURRENT BASELINE ----------
+    current_health_data = calculate_health(db, vehicle_id)
+
+    if not current_health_data:
+        return {"error": "No telemetry data"}
+
+    current_health = current_health_data["health_score"]
+    current_life = current_health_data["predicted_life_years"]
+
+    # Current maintenance cost (reuse cost logic)
+    engine = current_health_data.get("engine_health", 100)
+    battery = current_health_data.get("battery_health", 100)
+    fuel = current_health_data.get("fuel_system_health", 100)
+    drivetrain = current_health_data.get("drivetrain_health", 100)
+
+    current_cost = (
+        (100 - engine) * 50 +
+        (100 - battery) * 30 +
+        (100 - fuel) * 20 +
+        (100 - drivetrain) * 40
+    )
+
+    # ---------- WHAT-IF SIMULATION ----------
+    from math import pow
+
+    records = (
+        db.query(Telemetry)
+        .filter(Telemetry.vehicle_id == vehicle_id)
+        .order_by(desc(Telemetry.timestamp))
+        .limit(150)
+        .all()
+    )
+
+    if not records:
+        return {"error": "No telemetry data"}
+
+    max_temp = scenario.get("max_temp", 100)
+    max_rpm = scenario.get("max_rpm", 3500)
+    component = scenario.get("component", "all")
+
+    engine_health = engine
+    battery_health = battery
+    fuel_system_health = fuel
+    drivetrain_health = drivetrain
+
+    for r in records:
+
+        if component in ["engine", "all"]:
+            if r.engine_temp > max_temp:
+                engine_health -= (r.engine_temp - max_temp) * 0.01
+
+        if component in ["drivetrain", "all"]:
+            if r.rpm > max_rpm:
+                drivetrain_health -= (r.rpm - max_rpm) * 0.002
+
+        if component in ["battery", "all"]:
+            if r.battery_level < 50:
+                battery_health -= (50 - r.battery_level) * 0.01
+
+        if component in ["fuel", "all"]:
+            if r.fuel < 25:
+                fuel_system_health -= (25 - r.fuel) * 0.01
+
+    # Clamp
+    engine_health = max(0, min(100, engine_health))
+    battery_health = max(0, min(100, battery_health))
+    fuel_system_health = max(0, min(100, fuel_system_health))
+    drivetrain_health = max(0, min(100, drivetrain_health))
+
+    what_if_overall = (
+        engine_health * 0.35 +
+        battery_health * 0.25 +
+        fuel_system_health * 0.20 +
+        drivetrain_health * 0.20
+    )
+
+    what_if_life = 20 * pow(what_if_overall / 100, 1.4)
+
+    what_if_cost = (
+        (100 - engine_health) * 50 +
+        (100 - battery_health) * 30 +
+        (100 - fuel_system_health) * 20 +
+        (100 - drivetrain_health) * 40
+    )
+
+    # ---------- DELTA CALCULATION ----------
+    health_gain = what_if_overall - current_health
+    life_gain = what_if_life - current_life
+    cost_savings = current_cost - what_if_cost
+
+    return {
+        "current": {
+            "health": round(current_health, 2),
+            "life_years": round(current_life, 2),
+            "maintenance_cost": round(current_cost, 2)
+        },
+        "what_if": {
+            "health": round(what_if_overall, 2),
+            "life_years": round(what_if_life, 2),
+            "maintenance_cost": round(what_if_cost, 2)
+        },
+        "delta": {
+            "health_gain": round(health_gain, 2),
+            "life_gain_years": round(life_gain, 2),
+            "cost_savings": round(cost_savings, 2)
+        }
+    }
