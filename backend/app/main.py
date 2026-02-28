@@ -5,9 +5,9 @@ from slowapi.middleware import SlowAPIMiddleware
 from .database import engine, Base
 from .routes import router
 from .auth_routes import router as auth_router
-from .core.limiter import limiter
-from .core.logging_config import setup_logging
-from .core.middleware import register_middlewares
+from .limiter import limiter
+from .logging_config import setup_logging
+from .middleware import register_middlewares
 
 
 app = FastAPI()
