@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from datetime import datetime, timedelta
 from math import pow
+from .ai_service import compute_engine_failure_probability
+
 
 
 from .database import SessionLocal
@@ -659,3 +661,8 @@ def fleet_summary(db: Session = Depends(get_db)):
         "fleet_size": len(vehicles),
         "average_health": avg_health
     }
+
+@router.get("/vehicle/{vehicle_id}/failure-probability")
+def engine_failure_probability(vehicle_id: str, db: Session = Depends(get_db)):
+    result = compute_engine_failure_probability(db, vehicle_id)
+    return result
