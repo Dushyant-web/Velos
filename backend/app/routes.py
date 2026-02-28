@@ -103,3 +103,37 @@ def get_vehicle_path(vehicle_id: str, limit: int = 100, db: Session = Depends(ge
         }
         for r in records
     ]
+
+
+@router.get("/vehicle/{vehicle_id}/health-trend")
+def health_trend(vehicle_id: str, limit: int = 50, db: Session = Depends(get_db)):
+
+    records = (
+        db.query(Telemetry)
+        .filter(Telemetry.vehicle_id == vehicle_id)
+        .order_by(Telemetry.timestamp.asc())
+        .limit(limit)
+        .all()
+    )
+
+    trend = []
+
+    for r in records:
+        health_score = 100
+
+        # Same logic as calculate_health
+        if r.engine_temp > 110:
+            health_score -= 20
+        if r.battery_level < 30:
+            health_score -= 15
+        if r.fuel < 10:
+            health_score -= 10
+
+        trend.append({
+            "timestamp": r.timestamp,
+            "health_score": max(0, health_score),
+            "engine_temp": r.engine_temp,
+            "speed": r.speed
+        })
+
+    return trend

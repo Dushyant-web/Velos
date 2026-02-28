@@ -1,69 +1,52 @@
-import os
-import requests
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from .models import Telemetry
 from .health_service import calculate_health
 
 
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-
-
 def detect_terrain(db: Session, number_plate: str):
     """
-    Hybrid terrain detection:
-    1. Rule-based detection using speed patterns
-    2. Optional Google Elevation API enhancement
+    Intelligent terrain detection using vehicle behavior patterns.
+    No external APIs required.
     """
 
     records = (
         db.query(Telemetry)
         .filter(Telemetry.vehicle_id == number_plate)
         .order_by(desc(Telemetry.timestamp))
-        .limit(20)
+        .limit(30)
         .all()
     )
 
     if not records:
-        return "city"  # default fallback
+        return "city"
 
-    avg_speed = sum(r.speed for r in records) / len(records)
+    speeds = [r.speed for r in records]
+    rpms = [r.rpm for r in records]
+    temps = [r.engine_temp for r in records]
 
-    # --- RULE BASED DETECTION ---
-    if avg_speed > 85:
-        terrain = "highway"
-    elif avg_speed < 25:
-        terrain = "city"
-    else:
-        terrain = "mixed"
+    avg_speed = sum(speeds) / len(speeds)
+    speed_variation = max(speeds) - min(speeds)
+    avg_rpm = sum(rpms) / len(rpms)
+    avg_temp = sum(temps) / len(temps)
 
-    # --- GOOGLE ELEVATION ENHANCEMENT (optional) ---
-    if GOOGLE_API_KEY:
-        try:
-            latest = records[0]
-            elevation_url = (
-                f"https://maps.googleapis.com/maps/api/elevation/json"
-                f"?locations={latest.latitude},{latest.longitude}"
-                f"&key={GOOGLE_API_KEY}"
-            )
+    # Highway detection
+    if avg_speed > 85 and speed_variation < 20:
+        return "highway"
 
-            response = requests.get(elevation_url, timeout=3)
-            data = response.json()
+    # City detection
+    if avg_speed < 35 and speed_variation > 25:
+        return "city"
 
-            if data.get("results"):
-                elevation = data["results"][0]["elevation"]
+    # Hilly detection
+    if avg_rpm > 3500 and avg_speed < 70 and avg_temp > 100:
+        return "hilly"
 
-                # Elevation logic
-                if elevation > 500:
-                    terrain = "hilly"
-                elif elevation < 50 and avg_speed < 40:
-                    terrain = "offroad"
+    # Offroad detection
+    if speed_variation > 40 and avg_speed < 50:
+        return "offroad"
 
-        except Exception:
-            # If API fails, ignore and keep rule-based result
-            pass
-
-    return terrain
+    return "mixed"
 
 
 def simulate_terrain(db: Session, number_plate: str):
