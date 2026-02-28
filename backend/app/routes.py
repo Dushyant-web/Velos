@@ -4,7 +4,8 @@ from sqlalchemy import desc
 from datetime import datetime, timedelta
 from math import pow
 from .ai_service import compute_engine_failure_probability,detect_anomalies,compute_risk_confidence,unified_ai_analysis,compute_component_failure_probabilities
-
+from .models import User
+from .auth_utils import get_current_user
 
 
 from .database import SessionLocal
@@ -33,16 +34,24 @@ def get_db():
 # TELEMETRY ROUTES
 # =========================
 @router.post("/telemetry")
-def create_telemetry(data: TelemetryCreate, db: Session = Depends(get_db)):
+def create_telemetry(
+    data: TelemetryCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    vehicle = db.query(Vehicle).filter(
+        Vehicle.number_plate == data.vehicle_id,
+        Vehicle.fleet_id == current_user.fleet.id
+    ).first()
 
-    print("ROUTE HIT")
+    if not vehicle:
+        return {"error": "Vehicle not found in your fleet"}
 
     telemetry = Telemetry(**data.dict())
     db.add(telemetry)
     db.commit()
     db.refresh(telemetry)
 
-    print("CALLING ALERT FUNCTION")
     check_and_create_alert(db, data.vehicle_id)
 
     return {"message": "Telemetry stored successfully"}
@@ -64,13 +73,16 @@ def get_recent_telemetry(vehicle_id: str, limit: int = 10, db: Session = Depends
 # VEHICLE ROUTES
 # =========================
 @router.post("/vehicles")
-def create_vehicle(data: VehicleCreate, db: Session = Depends(get_db)):
+def create_vehicle(
+    data: VehicleCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
 
-    # Get first fleet (temporary until auth is built)
-    fleet = db.query(Fleet).first()
+    fleet = current_user.fleet
 
     if not fleet:
-        return {"error": "No fleet exists. Create fleet first."}
+        return {"error": "User has no fleet"}
 
     vehicle = Vehicle(
         number_plate=data.number_plate,
@@ -87,20 +99,33 @@ def create_vehicle(data: VehicleCreate, db: Session = Depends(get_db)):
 
     return vehicle
 
-@router.get("/vehicles", response_model=list[VehicleResponse])
-def get_vehicles(db: Session = Depends(get_db)):
+@router.get("/vehicles")
+def get_vehicles(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     return db.query(Vehicle).all()
 
-
 @router.get("/vehicle/{number_plate}/health")
-def get_vehicle_health(number_plate: str, db: Session = Depends(get_db)):
+def get_vehicle_health(
+    number_plate: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    vehicle = db.query(Vehicle).filter(
+        Vehicle.number_plate == number_plate,
+        Vehicle.fleet_id == current_user.fleet.id
+    ).first()
+
+    if not vehicle:
+        return {"error": "Vehicle not found in your fleet"}
+
     result = calculate_health(db, number_plate)
 
     if not result:
         return {"message": "No telemetry data found"}
 
     return result
-
 
 @router.post("/vehicle/{number_plate}/simulate-terrain")
 def simulate_vehicle_terrain(
@@ -509,9 +534,13 @@ def compare_scenario(
     }
 
 @router.get("/fleet/overview")
-def fleet_overview(db: Session = Depends(get_db)):
-
-    vehicles = db.query(Vehicle).all()
+def fleet_overview(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    vehicles = db.query(Vehicle).filter(
+        Vehicle.fleet_id == current_user.fleet.id
+    ).all()
 
     if not vehicles:
         return {"error": "No vehicles found"}
@@ -612,9 +641,13 @@ def fleet_risk_distribution(db: Session = Depends(get_db)):
 
 
 @router.get("/fleet/ranking")
-def fleet_ranking(db: Session = Depends(get_db)):
-
-    vehicles = db.query(Vehicle).all()
+def fleet_ranking(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    vehicles = db.query(Vehicle).filter(
+        Vehicle.fleet_id == current_user.fleet.id
+    ).all()
 
     ranking = []
 
@@ -639,19 +672,40 @@ def fleet_ranking(db: Session = Depends(get_db)):
     }
 
 @router.get("/alerts")
-def get_all_alerts(db: Session = Depends(get_db)):
-    data = db.query(Alert).all()
-    print("ALERT COUNT:", len(data))
-    return {"count": len(data)}
+def get_all_alerts(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    vehicles = db.query(Vehicle).filter(
+        Vehicle.fleet_id == current_user.fleet.id
+    ).all()
+
+    vehicle_ids = [v.number_plate for v in vehicles]
+
+    alerts = db.query(Alert).filter(
+        Alert.vehicle_id.in_(vehicle_ids)
+    ).all()
+
+    return alerts
 
 @router.get("/alerts/{vehicle_id}")
-def get_vehicle_alerts(vehicle_id: str, db: Session = Depends(get_db)):
-    return (
-        db.query(Alert)
-        .filter(Alert.vehicle_id == vehicle_id)
-        .order_by(Alert.timestamp.desc())
-        .all()
-    )
+def get_vehicle_alerts(
+    vehicle_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    vehicle = db.query(Vehicle).filter(
+        Vehicle.number_plate == vehicle_id,
+        Vehicle.fleet_id == current_user.fleet.id
+    ).first()
+
+    if not vehicle:
+        return {"error": "Vehicle not found in your fleet"}
+
+    return db.query(Alert).filter(
+        Alert.vehicle_id == vehicle_id
+    ).order_by(Alert.timestamp.desc()).all()
+
 
 @router.get("/alerts/history/{vehicle_id}")
 def get_vehicle_alert_history(vehicle_id: str, db: Session = Depends(get_db)):
