@@ -38,7 +38,7 @@ def calculate_health(db: Session, number_plate: str):
 
         # Fuel system wear
         if r.fuel < 25:
-            fuel_system_health -= (25 - r.fuel) * 0.01
+            fuel_system_health -= (25 - r.fuel) * 0.01 
 
     # Clamp all
     engine_health = max(0, min(100, engine_health))
