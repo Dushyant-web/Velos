@@ -67,7 +67,7 @@ def calculate_health(db: Session, number_plate: str):
         risk = "Critical"
 
     return {
-        "overall_health": round(overall_health, 2),
+        "health_score": round(overall_health, 2),
         "predicted_life_years": predicted_life,
         "risk_level": risk,
         "engine_health": round(engine_health, 2),
