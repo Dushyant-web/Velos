@@ -634,3 +634,28 @@ def get_vehicle_alerts(vehicle_id: str, db: Session = Depends(get_db)):
         .order_by(Alert.timestamp.desc())
         .all()
     )
+
+@router.get("/alerts/history/{vehicle_id}")
+def get_vehicle_alert_history(vehicle_id: str, db: Session = Depends(get_db)):
+    alerts = db.query(Alert).filter(
+        Alert.vehicle_id == vehicle_id
+    ).order_by(Alert.timestamp.desc()).all()
+
+    return alerts
+
+@router.get("/fleet/summary")
+def fleet_summary(db: Session = Depends(get_db)):
+    vehicles = db.query(Vehicle).all()
+
+    results = []
+
+    for v in vehicles:
+        health = calculate_health(db, v.number_plate)
+        results.append(health["health_score"])
+
+    avg_health = sum(results) / len(results) if results else 0
+
+    return {
+        "fleet_size": len(vehicles),
+        "average_health": avg_health
+    }
