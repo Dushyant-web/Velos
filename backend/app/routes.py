@@ -81,16 +81,14 @@ def get_vehicle_health(number_plate: str, db: Session = Depends(get_db)):
 @router.post("/vehicle/{number_plate}/simulate-terrain")
 def simulate_vehicle_terrain(
     number_plate: str,
-    terrain: str = Body(...),
     db: Session = Depends(get_db)
 ):
-    result = simulate_terrain(db, number_plate, terrain)
+    result = simulate_terrain(db, number_plate)
 
     if not result:
         return {"message": "No telemetry data found"}
 
     return result
-
 
 # =========================
 # VEHICLE PATH
@@ -152,11 +150,11 @@ def health_trend(vehicle_id: str, limit: int = 100, db: Session = Depends(get_db
         life_remaining -= stress
         life_remaining = max(0, life_remaining)
 
-        overall_health = (life_remaining / total_life) * 100
+        health_score = (life_remaining / total_life) * 100
 
         trend.append({
             "timestamp": r.timestamp,
-            "overall_health": round(overall_health, 2),
+            "health_score": round(health_score, 2),
             "life_remaining_years": round(life_remaining, 3)
         })
 
@@ -312,7 +310,7 @@ def what_if_simulation(
     predicted_life = 20 * pow(projected_overall / 100, 1.4)
 
     return {
-        "what_if_overall_health": round(projected_overall, 2),
+        "what_if_health_score": round(projected_overall, 2),
         "engine_health": round(engine_health, 2),
         "battery_health": round(battery_health, 2),
         "fuel_system_health": round(fuel_system_health, 2),
@@ -386,7 +384,7 @@ def compare_scenario(
     if not current:
         return {"error": "No telemetry data"}
 
-    current_health = current["overall_health"]
+    current_health = current["health_score"]
     current_life = current["predicted_life_years"]
 
     engine_current = current["engine_health"]
@@ -458,7 +456,7 @@ def compare_scenario(
     # ---------- DELTA ----------
     return {
         "current": {
-            "overall_health": round(current_health, 2),
+            "health_score": round(current_health, 2),
             "life_years": round(current_life, 2),
             "maintenance_cost": round(current_cost, 2),
             "engine_health": round(engine_current, 2),
@@ -467,7 +465,7 @@ def compare_scenario(
             "drivetrain_health": round(drivetrain_current, 2)
         },
         "what_if": {
-            "overall_health": round(what_if_overall, 2),
+            "health_score": round(what_if_overall, 2),
             "life_years": round(what_if_life, 2),
             "maintenance_cost": round(what_if_cost, 2),
             "engine_health": round(engine_scenario, 2),
@@ -511,7 +509,7 @@ def fleet_overview(db: Session = Depends(get_db)):
         if not health_data:
             continue
 
-        health = health_data["overall_health"]
+        health = health_data["health_score"]
         life = health_data["predicted_life_years"]
 
         engine = health_data["engine_health"]
@@ -605,12 +603,12 @@ def fleet_ranking(db: Session = Depends(get_db)):
 
         ranking.append({
             "vehicle_id": v.number_plate,
-            "overall_health": health_data["overall_health"],
+            "health_score": health_data["health_score"],
             "predicted_life_years": health_data["predicted_life_years"],
             "risk_level": health_data["risk_level"]
         })
 
-    ranking.sort(key=lambda x: x["overall_health"])
+    ranking.sort(key=lambda x: x["health_score"])
 
     return {
         "fleet_ranking_worst_to_best": ranking

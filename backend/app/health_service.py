@@ -47,27 +47,27 @@ def calculate_health(db: Session, number_plate: str):
     drivetrain_health = max(0, min(100, drivetrain_health))
 
     # Weighted overall health
-    overall_health = (
+    health_score = (
         engine_health * 0.35 +
         battery_health * 0.25 +
         fuel_system_health * 0.20 +
         drivetrain_health * 0.20
     )
 
-    overall_health = max(0, min(100, overall_health))
+    health_score = max(0, min(100, health_score))
 
-    predicted_life = round(20 * pow(overall_health / 100, 1.4), 2)
+    predicted_life = round(20 * pow(health_score / 100, 1.4), 2)
 
     risk = "Low"
-    if overall_health < 70:
+    if health_score < 70:
         risk = "Moderate"
-    if overall_health < 50:
+    if health_score < 50:
         risk = "High"
-    if overall_health < 30:
+    if health_score < 30:
         risk = "Critical"
 
     return {
-        "health_score": round(overall_health, 2),
+        "health_score": round(health_score, 2),
         "predicted_life_years": predicted_life,
         "risk_level": risk,
         "engine_health": round(engine_health, 2),
