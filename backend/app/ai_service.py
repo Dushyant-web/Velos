@@ -107,3 +107,86 @@ def detect_anomalies(db: Session, vehicle_id: str):
     check_metric("speed")
 
     return anomalies
+
+def compute_risk_confidence(db: Session, vehicle_id: str):
+
+    from .ai_service import compute_engine_failure_probability, detect_anomalies
+    from .health_service import calculate_health
+
+    health = calculate_health(db, vehicle_id)
+    failure = compute_engine_failure_probability(db, vehicle_id)
+    anomalies = detect_anomalies(db, vehicle_id)
+
+    if not health or not failure:
+        return None
+
+    failure_prob = failure["engine_failure_probability_90_days"]
+    normalized_health = health["health_score"] / 100
+    anomaly_factor = min(len(anomalies) / 3, 1)
+
+    risk_score = (
+        0.5 * failure_prob +
+        0.3 * (1 - normalized_health) +
+        0.2 * anomaly_factor
+    )
+
+    if risk_score > 0.7:
+        risk_level = "High"
+    elif risk_score > 0.4:
+        risk_level = "Moderate"
+    else:
+        risk_level = "Low"
+
+    # Confidence based on telemetry depth
+    record_count = (
+        db.query(Telemetry)
+        .filter(Telemetry.vehicle_id == vehicle_id)
+        .count()
+    )
+
+    confidence_score = min(record_count / 30, 1)
+
+    return {
+        "risk_level": risk_level,
+        "risk_score": round(risk_score, 3),
+        "confidence_score": round(confidence_score, 3)
+    }
+
+def generate_recommendations(failure, anomalies, risk):
+
+    recommendations = []
+
+    if failure and failure.get("engine_failure_probability_90_days", 0) > 0.6:
+        recommendations.append(
+            "Schedule engine inspection within 14 days"
+        )
+
+    for anomaly in anomalies:
+        if anomaly["metric"] == "rpm":
+            recommendations.append("Reduce aggressive acceleration")
+        if anomaly["metric"] == "engine_temp":
+            recommendations.append("Avoid high-load driving for next 7 days")
+        if anomaly["metric"] == "fuel":
+            recommendations.append("Inspect fuel system for irregular usage")
+
+    if risk and risk.get("risk_level") == "High":
+        recommendations.append("Prioritize preventive maintenance")
+
+    return list(set(recommendations))
+
+def unified_ai_analysis(db: Session, vehicle_id: str):
+
+    failure = compute_engine_failure_probability(db, vehicle_id)
+    anomalies = detect_anomalies(db, vehicle_id)
+    risk = compute_risk_confidence(db, vehicle_id)
+
+    recommendations = generate_recommendations(
+        failure, anomalies, risk
+    )
+
+    return {
+        "failure_probability": failure,
+        "anomalies": anomalies,
+        "risk_analysis": risk,
+        "recommendations": recommendations
+    }
