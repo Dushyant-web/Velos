@@ -35,7 +35,9 @@ def create_telemetry(data: TelemetryCreate, db: Session = Depends(get_db)):
     db.add(telemetry)
     db.commit()
     db.refresh(telemetry)
-    check_and_create_alert(db, data.vehicle_id)
+
+    # check_and_create_alert(db, data.vehicle_id)
+
     return {"message": "Telemetry stored successfully"}
 
 
