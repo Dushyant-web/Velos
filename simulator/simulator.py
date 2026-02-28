@@ -20,7 +20,7 @@ for v in vehicles:
         "tire_pressure": 32.0
     }
 
-print("🚗 Starting 20 vehicle simulation...\n")
+print("🚗 Starting 200 vehicle simulation...\n")
 print(f"📡 Sending data to: {BASE_URL}\n")
 
 
@@ -88,6 +88,7 @@ try:
 
                 if response.status_code != 200:
                     print(f"❌ Error {v}: {response.status_code} - {response.text}")
+                time.sleep(0.05)
 
             except Exception as e:
                 print(f"🚨 Request failed for {v}: {e}")
