@@ -13,6 +13,7 @@ from .health_service import calculate_health
 from .simulation_service import simulate_terrain
 from .alert_service import check_and_create_alert
 from .models import Telemetry, Vehicle, Alert
+from .models import Fleet
 
 router = APIRouter()
   
@@ -62,14 +63,29 @@ def get_recent_telemetry(vehicle_id: str, limit: int = 10, db: Session = Depends
 # =========================
 # VEHICLE ROUTES
 # =========================
-@router.post("/vehicles", response_model=VehicleResponse)
-def create_vehicle(vehicle: VehicleCreate, db: Session = Depends(get_db)):
-    db_vehicle = Vehicle(**vehicle.dict())
-    db.add(db_vehicle)
-    db.commit()
-    db.refresh(db_vehicle)
-    return db_vehicle
+@router.post("/vehicles")
+def create_vehicle(data: VehicleCreate, db: Session = Depends(get_db)):
 
+    # Get first fleet (temporary until auth is built)
+    fleet = db.query(Fleet).first()
+
+    if not fleet:
+        return {"error": "No fleet exists. Create fleet first."}
+
+    vehicle = Vehicle(
+        number_plate=data.number_plate,
+        name=data.name,
+        model=data.model,
+        year=data.year,
+        image_url=data.image_url,
+        fleet_id=fleet.id
+    )
+
+    db.add(vehicle)
+    db.commit()
+    db.refresh(vehicle)
+
+    return vehicle
 
 @router.get("/vehicles", response_model=list[VehicleResponse])
 def get_vehicles(db: Session = Depends(get_db)):
