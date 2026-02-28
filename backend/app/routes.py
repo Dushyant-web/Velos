@@ -176,36 +176,37 @@ def project_life(
     if not records:
         return {"error": "No data"}
 
-    # --- STEP 1: calculate avg stress per record ---
+    # --- STEP 1: calculate average stress level ---
     total_stress = 0
 
     for r in records:
         stress = 0
 
-        if r.engine_temp > 95:
-            stress += 0.002
-        if r.rpm > 3500:
-            stress += 0.001
-        if r.battery_level < 40:
-            stress += 0.001
-        if r.fuel < 20:
-            stress += 0.001
+        # Realistic stress model
+        if r.engine_temp > 110:
+            stress += (r.engine_temp - 110) / 500
+
+        if r.rpm > 3000:
+            stress += (r.rpm - 3000) / 8000
+
+        if r.battery_level < 50:
+            stress += (50 - r.battery_level) / 500
+
+        if r.fuel < 25:
+            stress += (25 - r.fuel) / 500
 
         total_stress += stress
 
     avg_stress = total_stress / len(records)
 
-    # --- STEP 2: Convert to yearly degradation rate ---
-    # 3 sec per record
-    records_per_hour = 3600 / 3
-    hourly_stress = avg_stress * records_per_hour
+    # --- STEP 2: Convert stress to yearly degradation ---
+    # Base yearly wear = 1 year consumed per 20 years lifespan
+    base_yearly_wear = 1 / 20  
 
-    yearly_stress = hourly_stress * 24 * 365
+    # Stress multiplier
+    yearly_degradation = base_yearly_wear * (1 + avg_stress)
 
-    # Normalize so max degradation over 20 years
-    degradation_factor = yearly_stress / 20
-
-    # --- STEP 3: Calculate requested future time ---
+    # --- STEP 3: Convert requested time to years ---
     total_years_requested = (
         years +
         (months / 12) +
@@ -216,15 +217,12 @@ def project_life(
 
     projected_life_remaining = max(
         0,
-        total_life - (degradation_factor * total_years_requested)
+        total_life - (yearly_degradation * total_years_requested * 20)
     )
 
     projected_health = (projected_life_remaining / total_life) * 100
 
     return {
         "projected_health_percentage": round(projected_health, 2),
-        "projected_life_remaining_years": round(projected_life_remaining, 2),
-        "years_input": years,
-        "months_input": months,
-        "hours_input": hours
+        "projected_life_remaining_years": round(projected_life_remaining, 2)
     }
