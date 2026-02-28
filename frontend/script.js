@@ -132,3 +132,25 @@ async function loadHealthTrend(vehicleId) {
         }
     });
 }
+
+async function projectLife() {
+
+    const vehicleId = document.getElementById("vehicleInput").value;
+    const years = document.getElementById("yearsInput").value || 0;
+    const months = document.getElementById("monthsInput").value || 0;
+    const hours = document.getElementById("hoursInput").value || 0;
+
+    const BASE_URL = window.location.hostname === "localhost"
+        ? "http://127.0.0.1:8000"
+        : "https://velos-production.up.railway.app";
+
+    const response = await fetch(
+        `${BASE_URL}/vehicle/${vehicleId}/project-life?years=${years}&months=${months}&hours=${hours}`
+    );
+
+    const data = await response.json();
+
+    document.getElementById("projectionResult").innerHTML =
+        `Projected Health: ${data.projected_health_percentage}% <br>
+         Life Remaining: ${data.projected_life_remaining_years} years`;
+}

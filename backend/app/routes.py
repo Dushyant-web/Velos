@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from .simulation_service import simulate_terrain
 from fastapi import Body
+from datetime import timedelta
 
 from .database import SessionLocal
 from .models import Telemetry, Vehicle
@@ -152,3 +153,69 @@ def health_trend(vehicle_id: str, limit: int = 100, db: Session = Depends(get_db
         })
 
     return trend
+
+
+
+@router.get("/vehicle/{vehicle_id}/project-life")
+def project_life(
+    vehicle_id: str,
+    years: float = 0,
+    months: float = 0,
+    hours: float = 0,
+    db: Session = Depends(get_db)
+):
+
+    records = (
+        db.query(Telemetry)
+        .filter(Telemetry.vehicle_id == vehicle_id)
+        .order_by(Telemetry.timestamp.desc())
+        .limit(50)
+        .all()
+    )
+
+    if not records:
+        return {"error": "No data"}
+
+    # Calculate average stress per record
+    total_stress = 0
+
+    for r in records:
+        stress = 0
+
+        if r.engine_temp > 95:
+            stress += 0.002
+        if r.rpm > 3500:
+            stress += 0.001
+        if r.battery_level < 40:
+            stress += 0.001
+        if r.fuel < 20:
+            stress += 0.001
+
+        total_stress += stress
+
+    avg_stress_per_record = total_stress / len(records)
+
+    # Convert future time to number of records
+    seconds = (
+        years * 365 * 24 * 3600 +
+        months * 30 * 24 * 3600 +
+        hours * 3600
+    )
+
+    records_in_future = seconds / 3  # since 1 record every 3 sec
+
+    projected_damage = avg_stress_per_record * records_in_future
+
+    total_life_years = 20.0
+
+    projected_life_remaining = max(0, total_life_years - projected_damage)
+
+    projected_health = (projected_life_remaining / total_life_years) * 100
+
+    return {
+        "projected_health_percentage": round(projected_health, 2),
+        "projected_life_remaining_years": round(projected_life_remaining, 2),
+        "years_input": years,
+        "months_input": months,
+        "hours_input": hours
+    }
