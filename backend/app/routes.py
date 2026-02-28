@@ -6,7 +6,6 @@ from math import pow
 
 
 from .database import SessionLocal
-from .models import Telemetry, Vehicle
 from .schemas import TelemetryCreate, VehicleCreate, VehicleResponse
 from .health_service import calculate_health
 from .simulation_service import simulate_terrain
