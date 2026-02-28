@@ -3,6 +3,11 @@ from sqlalchemy.sql import func
 from .database import Base
 from datetime import datetime
 
+import uuid
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import UUID
 
 
 # =========================
@@ -60,3 +65,47 @@ class Alert(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
     resolved = Column(Boolean, default=False)
 
+# =========================
+# AUTH (Phase 0)
+# =========================
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    role = Column(String, default="fleet_manager")
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    fleet = relationship("Fleet", back_populates="owner", uselist=False)
+
+# =========================
+# Fleet (Phase 0)
+# =========================
+
+class Fleet(Base):
+    __tablename__ = "fleets"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)
+
+    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    owner = relationship("User", back_populates="fleet")
+    vehicles = relationship("Vehicle", back_populates="fleet")
+
+class Vehicle(Base):
+    __tablename__ = "vehicles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    number_plate = Column(String, unique=True, index=True, nullable=False)
+    name = Column(String, nullable=False)
+    model = Column(String, nullable=False)
+    year = Column(Integer)
+    image_url = Column(String)
+
+    fleet_id = Column(UUID(as_uuid=True), ForeignKey("fleets.id"))
+    fleet = relationship("Fleet", back_populates="vehicles")
