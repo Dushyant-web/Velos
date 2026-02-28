@@ -1,14 +1,14 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Body
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
-from .simulation_service import simulate_terrain
-from fastapi import Body
-from datetime import timedelta
+from datetime import datetime, timedelta
+from math import pow
 
 from .database import SessionLocal
 from .models import Telemetry, Vehicle
 from .schemas import TelemetryCreate, VehicleCreate, VehicleResponse
 from .health_service import calculate_health
+from .simulation_service import simulate_terrain
 
 router = APIRouter()
 
@@ -64,6 +64,7 @@ def create_vehicle(vehicle: VehicleCreate, db: Session = Depends(get_db)):
 def get_vehicles(db: Session = Depends(get_db)):
     return db.query(Vehicle).all()
 
+
 @router.get("/vehicle/{number_plate}/health")
 def get_vehicle_health(number_plate: str, db: Session = Depends(get_db)):
     result = calculate_health(db, number_plate)
@@ -72,6 +73,7 @@ def get_vehicle_health(number_plate: str, db: Session = Depends(get_db)):
         return {"message": "No telemetry data found"}
 
     return result
+
 
 @router.post("/vehicle/{number_plate}/simulate-terrain")
 def simulate_vehicle_terrain(
@@ -86,6 +88,10 @@ def simulate_vehicle_terrain(
 
     return result
 
+
+# =========================
+# VEHICLE PATH
+# =========================
 @router.get("/vehicle/{vehicle_id}/path")
 def get_vehicle_path(vehicle_id: str, limit: int = 100, db: Session = Depends(get_db)):
     records = (
@@ -106,6 +112,9 @@ def get_vehicle_path(vehicle_id: str, limit: int = 100, db: Session = Depends(ge
     ]
 
 
+# =========================
+# HEALTH TREND (Improved Model)
+# =========================
 @router.get("/vehicle/{vehicle_id}/health-trend")
 def health_trend(vehicle_id: str, limit: int = 100, db: Session = Depends(get_db)):
 
@@ -117,34 +126,30 @@ def health_trend(vehicle_id: str, limit: int = 100, db: Session = Depends(get_db
         .all()
     )
 
-    life_remaining = 20.0  # 20 year total vehicle life
-
+    total_life = 20.0
+    life_remaining = total_life
     trend = []
 
     for r in records:
 
         stress = 0
 
-        # Temperature stress
         if r.engine_temp > 95:
-            stress += 0.002
+            stress += (r.engine_temp - 95) / 500
 
-        # High RPM stress
         if r.rpm > 3500:
-            stress += 0.001
+            stress += (r.rpm - 3500) / 10000
 
-        # Low battery stress
         if r.battery_level < 40:
-            stress += 0.001
+            stress += (40 - r.battery_level) / 800
 
-        # Low fuel stress
         if r.fuel < 20:
-            stress += 0.001
+            stress += (20 - r.fuel) / 800
 
         life_remaining -= stress
         life_remaining = max(0, life_remaining)
 
-        health_score = (life_remaining / 20.0) * 100
+        health_score = (life_remaining / total_life) * 100
 
         trend.append({
             "timestamp": r.timestamp,
@@ -155,7 +160,9 @@ def health_trend(vehicle_id: str, limit: int = 100, db: Session = Depends(get_db
     return trend
 
 
-
+# =========================
+# PROJECT LIFE (Phase 4 Non-Linear Engine)
+# =========================
 @router.get("/vehicle/{vehicle_id}/project-life")
 def project_life(
     vehicle_id: str,
@@ -169,20 +176,19 @@ def project_life(
         db.query(Telemetry)
         .filter(Telemetry.vehicle_id == vehicle_id)
         .order_by(Telemetry.timestamp.desc())
-        .limit(100)
+        .limit(150)
         .all()
     )
 
     if not records:
         return {"error": "No data"}
 
-    # --- STEP 1: calculate average stress level ---
+    # ---- STEP 1: Average stress ----
     total_stress = 0
 
     for r in records:
         stress = 0
 
-        # Realistic stress model
         if r.engine_temp > 110:
             stress += (r.engine_temp - 110) / 500
 
@@ -199,14 +205,13 @@ def project_life(
 
     avg_stress = total_stress / len(records)
 
-    # --- STEP 2: Convert stress to yearly degradation ---
-    # Base yearly wear = 1 year consumed per 20 years lifespan
-    base_yearly_wear = 1 / 20  
+    # ---- STEP 2: Non-Linear Degradation ----
+    base_yearly_wear = 1 / 20
+    stress_multiplier = 1 + pow(avg_stress, 1.4)
 
-    # Stress multiplier
-    yearly_degradation = base_yearly_wear * (1 + avg_stress)
+    yearly_degradation = base_yearly_wear * stress_multiplier
 
-    # --- STEP 3: Convert requested time to years ---
+    # ---- STEP 3: Convert requested time ----
     total_years_requested = (
         years +
         (months / 12) +
@@ -215,14 +220,27 @@ def project_life(
 
     total_life = 20.0
 
-    projected_life_remaining = max(
-        0,
-        total_life - (yearly_degradation * total_years_requested * 20)
+    life_consumed = yearly_degradation * total_years_requested * 20
+    projected_life_remaining = max(0, total_life - life_consumed)
+
+    # Curve effect near failure
+    projected_life_remaining = total_life * pow(
+        projected_life_remaining / total_life, 1.2
     )
 
     projected_health = (projected_life_remaining / total_life) * 100
 
+    # ---- STEP 4: Failure Date Prediction ----
+    if projected_health <= 15:
+        failure_years = total_years_requested
+    else:
+        failure_years = (projected_life_remaining / total_life) * 20
+
+    failure_date = datetime.utcnow() + timedelta(days=failure_years * 365)
+
     return {
         "projected_health_percentage": round(projected_health, 2),
-        "projected_life_remaining_years": round(projected_life_remaining, 2)
+        "projected_life_remaining_years": round(projected_life_remaining, 2),
+        "predicted_failure_date": failure_date.strftime("%Y-%m-%d"),
+        "stress_index": round(avg_stress, 4)
     }
