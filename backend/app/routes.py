@@ -13,7 +13,7 @@ from .alert_service import check_and_create_alert
 from .models import Telemetry, Vehicle, Alert
 
 router = APIRouter()
-
+  
 
 # =========================
 # DB DEPENDENCY
