@@ -1,13 +1,10 @@
-from sqlalchemy import Column, Integer, Float, String, DateTime, Boolean
+from sqlalchemy import Column, Integer, Float, String, DateTime, Boolean, ForeignKey
 from sqlalchemy.sql import func
-from .database import Base
-from datetime import datetime
-
-import uuid
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
+from .database import Base
+from datetime import datetime
+import uuid
 
 
 # =========================
@@ -33,21 +30,7 @@ class Telemetry(Base):
 
 
 # =========================
-# VEHICLE METADATA TABLE
-# =========================
-class Vehicle(Base):
-    __tablename__ = "vehicles"
-
-    id = Column(Integer, primary_key=True, index=True)
-    number_plate = Column(String, unique=True, index=True, nullable=False)
-    name = Column(String, nullable=False)
-    model = Column(String, nullable=False)
-    year = Column(Integer)
-    image_url = Column(String)
-
-
-# =========================
-# ALERT TABLE (Phase 8)
+# ALERT TABLE
 # =========================
 class Alert(Base):
     __tablename__ = "alerts"
@@ -65,26 +48,26 @@ class Alert(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
     resolved = Column(Boolean, default=False)
 
-# =========================
-# AUTH (Phase 0)
-# =========================
 
+# =========================
+# USER TABLE (AUTH)
+# =========================
 class User(Base):
     __tablename__ = "users"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
-    role = Column(String, default="fleet_manager")
+    role = Column(String, default="fleet_manager")  # admin / fleet_manager
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     fleet = relationship("Fleet", back_populates="owner", uselist=False)
 
-# =========================
-# Fleet (Phase 0)
-# =========================
 
+# =========================
+# FLEET TABLE
+# =========================
 class Fleet(Base):
     __tablename__ = "fleets"
 
@@ -97,6 +80,10 @@ class Fleet(Base):
     owner = relationship("User", back_populates="fleet")
     vehicles = relationship("Vehicle", back_populates="fleet")
 
+
+# =========================
+# VEHICLE TABLE (UPDATED)
+# =========================
 class Vehicle(Base):
     __tablename__ = "vehicles"
 
