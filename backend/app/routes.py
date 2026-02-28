@@ -8,7 +8,7 @@ from .models import User
 from .auth_utils import get_current_user,require_admin
 from fastapi import Request
 from fastapi import  HTTPException
-from .core.limiter import limiter
+from .limiter import limiter
 
 
 from .database import SessionLocal
