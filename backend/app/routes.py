@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from datetime import datetime, timedelta
 from math import pow
-from .ai_service import compute_engine_failure_probability
+from .ai_service import compute_engine_failure_probability,detect_anomalies
 
 
 
@@ -666,3 +666,7 @@ def fleet_summary(db: Session = Depends(get_db)):
 def engine_failure_probability(vehicle_id: str, db: Session = Depends(get_db)):
     result = compute_engine_failure_probability(db, vehicle_id)
     return result
+
+@router.get("/vehicle/{vehicle_id}/anomalies")
+def vehicle_anomalies(vehicle_id: str, db: Session = Depends(get_db)):
+    return detect_anomalies(db, vehicle_id)
