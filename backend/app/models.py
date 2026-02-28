@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, Float, String, DateTime
+from sqlalchemy import Column, Integer, Float, String, DateTime, Boolean
 from sqlalchemy.sql import func
 from .database import Base
+from datetime import datetime
 
 
 # =========================
@@ -37,3 +38,23 @@ class Vehicle(Base):
     model = Column(String, nullable=False)
     year = Column(Integer)
     image_url = Column(String)
+
+
+# =========================
+# ALERT TABLE (Phase 8)
+# =========================
+class Alert(Base):
+    __tablename__ = "alerts"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    vehicle_id = Column(String, index=True)
+    vehicle_name = Column(String)
+    vehicle_model = Column(String)
+
+    alert_type = Column(String)
+    severity = Column(String)
+    message = Column(String)
+
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    resolved = Column(Boolean, default=False)

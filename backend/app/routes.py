@@ -9,6 +9,8 @@ from .models import Telemetry, Vehicle
 from .schemas import TelemetryCreate, VehicleCreate, VehicleResponse
 from .health_service import calculate_health
 from .simulation_service import simulate_terrain
+from .alert_service import check_and_create_alert
+from .models import Alert
 
 router = APIRouter()
 
@@ -33,6 +35,7 @@ def create_telemetry(data: TelemetryCreate, db: Session = Depends(get_db)):
     db.add(telemetry)
     db.commit()
     db.refresh(telemetry)
+    check_and_create_alert(db, data.vehicle_id)
     return {"message": "Telemetry stored successfully"}
 
 
@@ -612,3 +615,17 @@ def fleet_ranking(db: Session = Depends(get_db)):
     return {
         "fleet_ranking_worst_to_best": ranking
     }
+
+@router.get("/alerts")
+def get_all_alerts(db: Session = Depends(get_db)):
+    return db.query(Alert).order_by(Alert.timestamp.desc()).all()
+
+
+@router.get("/alerts/{vehicle_id}")
+def get_vehicle_alerts(vehicle_id: str, db: Session = Depends(get_db)):
+    return (
+        db.query(Alert)
+        .filter(Alert.vehicle_id == vehicle_id)
+        .order_by(Alert.timestamp.desc())
+        .all()
+    )
