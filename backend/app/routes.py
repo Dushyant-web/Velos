@@ -618,8 +618,9 @@ def fleet_ranking(db: Session = Depends(get_db)):
 
 @router.get("/alerts")
 def get_all_alerts(db: Session = Depends(get_db)):
-    return db.query(Alert).order_by(Alert.timestamp.desc()).all()
-
+    data = db.query(Alert).all()
+    print("ALERT COUNT:", len(data))
+    return {"count": len(data)}
 
 @router.get("/alerts/{vehicle_id}")
 def get_vehicle_alerts(vehicle_id: str, db: Session = Depends(get_db)):

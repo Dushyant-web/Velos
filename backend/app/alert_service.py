@@ -33,3 +33,4 @@ def check_and_create_alert(db, vehicle_id):
         alerts.append(("Engine Risk", "High", "Engine degradation critical"))
 
     print("ALERT LIST:", alerts)
+    print("ALERT FUNCTION CALLED")
