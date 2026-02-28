@@ -153,11 +153,11 @@ def health_trend(vehicle_id: str, limit: int = 100, db: Session = Depends(get_db
         life_remaining -= stress
         life_remaining = max(0, life_remaining)
 
-        health_score = (life_remaining / total_life) * 100
+        overall_health = (life_remaining / total_life) * 100
 
         trend.append({
             "timestamp": r.timestamp,
-            "health_score": round(health_score, 2),
+            "overall_health": round(overall_health, 2),
             "life_remaining_years": round(life_remaining, 3)
         })
 
@@ -387,7 +387,7 @@ def compare_scenario(
     if not current:
         return {"error": "No telemetry data"}
 
-    current_health = current["health_score"]
+    current_health = current["overall_health"]
     current_life = current["predicted_life_years"]
 
     engine_current = current["engine_health"]
@@ -512,7 +512,7 @@ def fleet_overview(db: Session = Depends(get_db)):
         if not health_data:
             continue
 
-        health = health_data["health_score"]
+        health = health_data["overall_health"]
         life = health_data["predicted_life_years"]
 
         engine = health_data["engine_health"]
@@ -606,12 +606,12 @@ def fleet_ranking(db: Session = Depends(get_db)):
 
         ranking.append({
             "vehicle_id": v.number_plate,
-            "health_score": health_data["health_score"],
+            "overall_health": health_data["overall_health"],
             "predicted_life_years": health_data["predicted_life_years"],
             "risk_level": health_data["risk_level"]
         })
 
-    ranking.sort(key=lambda x: x["health_score"])
+    ranking.sort(key=lambda x: x["overall_health"])
 
     return {
         "fleet_ranking_worst_to_best": ranking
