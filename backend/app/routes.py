@@ -31,12 +31,16 @@ def get_db():
 # =========================
 @router.post("/telemetry")
 def create_telemetry(data: TelemetryCreate, db: Session = Depends(get_db)):
+
+    print("ROUTE HIT")
+
     telemetry = Telemetry(**data.dict())
     db.add(telemetry)
     db.commit()
     db.refresh(telemetry)
 
-    # check_and_create_alert(db, data.vehicle_id)
+    print("CALLING ALERT FUNCTION")
+    check_and_create_alert(db, data.vehicle_id)
 
     return {"message": "Telemetry stored successfully"}
 
