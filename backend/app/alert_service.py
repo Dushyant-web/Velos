@@ -16,7 +16,7 @@ def check_and_create_alert(db, vehicle_id):
 
     alerts = []
 
-    if health["overall_health"] < 50:
+    if health["health_score"] < 50:
         alerts.append(("Health Drop", "High", "Overall health below 50%"))
 
     if health["engine_health"] < 40:
