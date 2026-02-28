@@ -7,7 +7,6 @@ async function getTelemetry() {
         return;
     }
 
-    // Dynamic backend URL (NO trailing slash)
     const BASE_URL = window.location.hostname === "localhost"
         ? "http://127.0.0.1:8000"
         : "https://velos-production.up.railway.app";
@@ -15,9 +14,7 @@ async function getTelemetry() {
     try {
         const response = await fetch(`${BASE_URL}/telemetry/${vehicleId}?limit=1`);
 
-        if (!response.ok) {
-            throw new Error("Server error");
-        }
+        if (!response.ok) throw new Error("Server error");
 
         const data = await response.json();
 
@@ -45,7 +42,7 @@ async function getTelemetry() {
 
     } catch (error) {
         resultDiv.innerHTML = "Error fetching data.";
-        console.error("Fetch error:", error);
+        console.error(error);
     }
 }
 
@@ -69,7 +66,6 @@ async function loadVehiclePath(vehicleId) {
 
     if (!map) {
         map = L.map('map').setView(coordinates[0], 13);
-
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
@@ -82,12 +78,10 @@ async function loadVehiclePath(vehicleId) {
     map.fitBounds(polyline.getBounds());
 
     const latest = coordinates[coordinates.length - 1];
-
     marker = L.marker(latest).addTo(map)
         .bindPopup("Current Vehicle Location")
         .openPopup();
 }
-
 
 
 let healthChart;
@@ -106,98 +100,66 @@ async function loadHealthTrend(vehicleId) {
 
     const ctx = document.getElementById('healthChart').getContext('2d');
 
-    if (healthChart) {
-        healthChart.destroy();
-    }
-healthChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: labels,
-        datasets: [
-            {
-                label: 'Historical Health',
-                data: healthData,
-                borderColor: '#00ff88',
-                backgroundColor: 'rgba(0,255,136,0.15)',
-                fill: true,
-                tension: 0.4,
-                borderWidth: 2,
-                pointRadius: 0
-            },
-            {
-                label: 'Projected Health',
-                data: [],
-                borderColor: '#ffaa00',
-                borderDash: [8, 6],
-                fill: false,
-                tension: 0.4,
-                borderWidth: 2,
-                pointRadius: 0
-            }
-        ]
-    },
-    options: {
-        responsive: true,
-        animation: {
-            duration: 1000,
-            easing: 'easeOutQuart'
-        },
-        interaction: {
-            mode: 'index',
-            intersect: false
-        },
-        plugins: {
-            legend: {
-                labels: {
-                    color: '#aaa'
+    if (healthChart) healthChart.destroy();
+
+    healthChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Historical Health',
+                    data: healthData,
+                    borderColor: '#00ff88',
+                    backgroundColor: 'rgba(0,255,136,0.15)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 2,
+                    pointRadius: 0
+                },
+                {
+                    label: 'Projected Health',
+                    data: [],
+                    borderColor: '#ffaa00',
+                    borderDash: [8, 6],
+                    fill: false,
+                    tension: 0.4,
+                    borderWidth: 2,
+                    pointRadius: 0
+                },
+                {
+                    label: 'What-If Projection',
+                    data: [],
+                    borderColor: '#00aaff',
+                    borderDash: [5, 5],
+                    fill: false,
+                    tension: 0.4,
+                    borderWidth: 2,
+                    pointRadius: 0
                 }
-            },
-            tooltip: {
-                backgroundColor: '#111',
-                borderColor: '#00ff88',
-                borderWidth: 1,
-                titleColor: '#00ff88',
-                bodyColor: '#fff',
-                callbacks: {
-                    label: function(context) {
-                        return `Health: ${context.raw.toFixed(2)}%`;
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                annotation: {
+                    annotations: {
+                        dangerZone: {
+                            type: 'box',
+                            yMin: 0,
+                            yMax: 30,
+                            backgroundColor: 'rgba(255,0,0,0.05)'
+                        }
                     }
                 }
             },
-            annotation: {
-                annotations: {
-                    dangerZone: {
-                        type: 'box',
-                        yMin: 0,
-                        yMax: 30,
-                        backgroundColor: 'rgba(255,0,0,0.05)'
-                    },
-                }     
-            }
-        },
-        scales: {
-            x: {
-                ticks: {
-                    color: '#666'
-                },
-                grid: {
-                    color: 'rgba(255,255,255,0.04)'
-                }
-            },
-            y: {
-                min: 0,
-                max: 100,
-                ticks: {
-                    color: '#666'
-                },
-                grid: {
-                    color: 'rgba(255,255,255,0.04)'
-                }
+            scales: {
+                y: { min: 0, max: 100 }
             }
         }
-    }
-});
+    });
 }
+
 
 async function projectLife() {
 
@@ -219,26 +181,15 @@ async function projectLife() {
     const data = await response.json();
 
     document.getElementById("projectionResult").innerHTML =
-        `Projected Health: ${data.projected_health_percentage}% <br>
-         Life Remaining: ${data.projected_life_remaining_years} years`;
+        `Projected Health: ${data.projected_health_percentage}% 
+         | Life Remaining: ${data.projected_life_remaining_years} years`;
 
     if (!healthChart) return;
 
-    // 🔥 RESET OLD PROJECTION FIRST
     const historicalLength = healthChart.data.datasets[0].data.length;
-    
-    // Remove future labels
     healthChart.data.labels = healthChart.data.labels.slice(0, historicalLength);
-    
-    // Clear projected dataset
     healthChart.data.datasets[1].data = [];
-    
-    // Keep dangerZone but remove todayLine if exists
-    if (healthChart.options.plugins.annotation.annotations.todayLine) {
-        delete healthChart.options.plugins.annotation.annotations.todayLine;
-    }
-    
-    healthChart.update();
+    healthChart.data.datasets[2].data = [];
 
     const totalYears = years + (months / 12) + (hours / (24 * 365));
     const totalLife = 20;
@@ -260,41 +211,80 @@ async function projectLife() {
 
     for (let i = 1; i <= steps; i++) {
         futureDate.setMonth(futureDate.getMonth() + 1);
-
         life -= monthlyDecay;
         if (life < 0) life = 0;
-
         projectedLabels.push(futureDate.toLocaleDateString());
         projectedData.push((life / totalLife) * 100);
     }
 
-    // Extend labels
-    healthChart.data.labels = [
-        ...healthChart.data.labels,
-        ...projectedLabels
-    ];
+    healthChart.data.labels = [...healthChart.data.labels, ...projectedLabels];
 
-    // Update projected dataset only
     healthChart.data.datasets[1].data = [
         ...Array(todayIndex + 1).fill(null),
         ...projectedData
     ];
 
-    // Add vertical “Today” marker
-    healthChart.options.plugins.annotation.annotations = {
-        todayLine: {
-            type: 'line',
-            xMin: healthChart.data.labels[todayIndex],
-            xMax: healthChart.data.labels[todayIndex],
-            borderColor: 'red',
-            borderWidth: 2,
-            label: {
-                content: 'Today',
-                enabled: true,
-                position: 'start'
-            }
-        }
+    healthChart.update();
+}
+
+
+async function runWhatIf() {
+
+    const vehicleId = document.getElementById("vehicleInput").value;
+
+    const BASE_URL = window.location.hostname === "localhost"
+        ? "http://127.0.0.1:8000"
+        : "https://velos-production.up.railway.app";
+
+    const scenario = {
+        max_temp: 95,
+        max_rpm: 3000,
+        driving_style: "eco",
+        maintenance_factor: 0.9
     };
+
+    const response = await fetch(
+        `${BASE_URL}/vehicle/${vehicleId}/what-if`,
+        {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(scenario)
+        }
+    );
+
+    const data = await response.json();
+
+    const currentLife = parseFloat(document.getElementById("projectionResult")
+        .innerText.split("Life Remaining: ")[1]);
+
+    const gain = (data.what_if_life_years - currentLife).toFixed(2);
+
+    document.getElementById("projectionResult").innerHTML +=
+        `<br><span style="color:#00aaff">
+         What-If Life: ${data.what_if_life_years} years 
+         (+${gain} years improvement)
+         </span>`;
+
+    const historicalLength = healthChart.data.datasets[0].data.length;
+    const todayIndex = historicalLength - 1;
+    const totalLife = 20;
+
+    const steps = 24; // 2 year simulation
+    const monthlyDecay = ((healthChart.data.datasets[0].data.slice(-1)[0] / 100 * totalLife) - data.what_if_life_years) / steps;
+
+    let projectedData = [];
+    let life = healthChart.data.datasets[0].data.slice(-1)[0] / 100 * totalLife;
+
+    for (let i = 1; i <= steps; i++) {
+        life -= monthlyDecay;
+        if (life < 0) life = 0;
+        projectedData.push((life / totalLife) * 100);
+    }
+
+    healthChart.data.datasets[2].data = [
+        ...Array(todayIndex + 1).fill(null),
+        ...projectedData
+    ];
 
     healthChart.update();
 }

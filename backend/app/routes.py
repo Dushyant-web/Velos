@@ -251,15 +251,6 @@ def what_if_simulation(
     scenario: dict = Body(...),
     db: Session = Depends(get_db)
 ):
-    """
-    scenario example:
-    {
-        "max_temp": 95,
-        "max_rpm": 3000,
-        "driving_style": "eco",   # eco / normal / aggressive
-        "maintenance_factor": 1.0 # 1 = perfect maintenance, >1 = poor
-    }
-    """
 
     records = (
         db.query(Telemetry)
@@ -274,49 +265,56 @@ def what_if_simulation(
 
     max_temp = scenario.get("max_temp", 100)
     max_rpm = scenario.get("max_rpm", 3500)
-    driving_style = scenario.get("driving_style", "normal")
-    maintenance_factor = scenario.get("maintenance_factor", 1.0)
+    component = scenario.get("component", "all")
 
-    style_multiplier = 1.0
-    if driving_style == "eco":
-        style_multiplier = 0.7
-    elif driving_style == "aggressive":
-        style_multiplier = 1.4
+    current_health = calculate_health(db, vehicle_id)
 
-    total_stress = 0
+    engine_health = current_health["engine_health"]
+    battery_health = current_health["battery_health"]
+    fuel_system_health = current_health["fuel_system_health"]
+    drivetrain_health = current_health["drivetrain_health"]
 
     for r in records:
-        stress = 0
 
-        if r.engine_temp > max_temp:
-            stress += (r.engine_temp - max_temp) / 500
+        if component in ["engine", "all"]:
+            if r.engine_temp > max_temp:
+                engine_health -= (r.engine_temp - max_temp) * 0.01
 
-        if r.rpm > max_rpm:
-            stress += (r.rpm - max_rpm) / 8000
+        if component in ["drivetrain", "all"]:
+            if r.rpm > max_rpm:
+                drivetrain_health -= (r.rpm - max_rpm) * 0.002
 
-        if r.battery_level < 50:
-            stress += (50 - r.battery_level) / 600
+        if component in ["battery", "all"]:
+            if r.battery_level < 50:
+                battery_health -= (50 - r.battery_level) * 0.01
 
-        if r.fuel < 25:
-            stress += (25 - r.fuel) / 600
+        if component in ["fuel", "all"]:
+            if r.fuel < 25:
+                fuel_system_health -= (25 - r.fuel) * 0.01
 
-        total_stress += stress
+    # Clamp values
+    engine_health = max(0, min(100, engine_health))
+    battery_health = max(0, min(100, battery_health))
+    fuel_system_health = max(0, min(100, fuel_system_health))
+    drivetrain_health = max(0, min(100, drivetrain_health))
 
-    avg_stress = (total_stress / len(records)) * style_multiplier * maintenance_factor
+    # Weighted overall health
+    projected_overall = (
+        engine_health * 0.35 +
+        battery_health * 0.25 +
+        fuel_system_health * 0.20 +
+        drivetrain_health * 0.20
+    )
 
-    total_life = 20.0
-    base_yearly_wear = 1 / 20
-    yearly_degradation = base_yearly_wear * (1 + avg_stress)
-
-    projected_life = total_life - (yearly_degradation * 20)
-    projected_life = max(0, projected_life)
-
-    projected_health = (projected_life / total_life) * 100
+    predicted_life = 20 * pow(projected_overall / 100, 1.4)
 
     return {
-        "what_if_health_percentage": round(projected_health, 2),
-        "what_if_life_years": round(projected_life, 2),
-        "stress_index": round(avg_stress, 4)
+        "what_if_overall_health": round(projected_overall, 2),
+        "engine_health": round(engine_health, 2),
+        "battery_health": round(battery_health, 2),
+        "fuel_system_health": round(fuel_system_health, 2),
+        "drivetrain_health": round(drivetrain_health, 2),
+        "what_if_life_years": round(predicted_life, 2)
     }
 
 @router.get("/vehicle/{vehicle_id}/recommended-scenarios")
@@ -341,4 +339,33 @@ def recommended_scenarios(vehicle_id: str):
             "driving_style": "aggressive",
             "maintenance_factor": 1.2
         }
+    }
+
+@router.get("/vehicle/{vehicle_id}/maintenance-cost")
+def maintenance_cost(vehicle_id: str, db: Session = Depends(get_db)):
+
+    current_health = calculate_health(db, vehicle_id)
+
+    if not current_health:
+        return {"error": "No telemetry data"}
+
+    engine = current_health["engine_health"]
+    battery = current_health["battery_health"]
+    fuel = current_health["fuel_system_health"]
+    drivetrain = current_health["drivetrain_health"]
+
+    # Cost multipliers (can later move to config)
+    engine_cost = (100 - engine) * 50
+    battery_cost = (100 - battery) * 30
+    fuel_cost = (100 - fuel) * 20
+    drivetrain_cost = (100 - drivetrain) * 40
+
+    total_cost = engine_cost + battery_cost + fuel_cost + drivetrain_cost
+
+    return {
+        "engine_repair_estimate": round(engine_cost, 2),
+        "battery_repair_estimate": round(battery_cost, 2),
+        "fuel_system_repair_estimate": round(fuel_cost, 2),
+        "drivetrain_repair_estimate": round(drivetrain_cost, 2),
+        "total_estimated_maintenance_cost": round(total_cost, 2)
     }

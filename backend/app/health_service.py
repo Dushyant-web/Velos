@@ -4,6 +4,7 @@ from .models import Telemetry
 from math import pow
 
 def calculate_health(db: Session, number_plate: str):
+
     records = (
         db.query(Telemetry)
         .filter(Telemetry.vehicle_id == number_plate)
@@ -15,50 +16,62 @@ def calculate_health(db: Session, number_plate: str):
     if not records:
         return None
 
-    total_stress = 0
+    # --- Initial Component Health ---
+    engine_health = 100.0
+    battery_health = 100.0
+    fuel_system_health = 100.0
+    drivetrain_health = 100.0
 
     for r in records:
-        stress = 0
 
+        # Engine wear
         if r.engine_temp > 100:
-            stress += (r.engine_temp - 100) / 400
+            engine_health -= (r.engine_temp - 100) * 0.01
 
+        # Drivetrain wear (RPM stress)
         if r.rpm > 3500:
-            stress += (r.rpm - 3500) / 10000
+            drivetrain_health -= (r.rpm - 3500) * 0.002
 
+        # Battery degradation
         if r.battery_level < 50:
-            stress += (50 - r.battery_level) / 800
+            battery_health -= (50 - r.battery_level) * 0.01
 
+        # Fuel system wear
         if r.fuel < 25:
-            stress += (25 - r.fuel) / 800
+            fuel_system_health -= (25 - r.fuel) * 0.01
 
-        total_stress += stress
+    # Clamp all
+    engine_health = max(0, min(100, engine_health))
+    battery_health = max(0, min(100, battery_health))
+    fuel_system_health = max(0, min(100, fuel_system_health))
+    drivetrain_health = max(0, min(100, drivetrain_health))
 
-    avg_stress = total_stress / len(records)
+    # Weighted overall health
+    overall_health = (
+        engine_health * 0.35 +
+        battery_health * 0.25 +
+        fuel_system_health * 0.20 +
+        drivetrain_health * 0.20
+    )
 
-    # 🔥 Non-linear aging factor
-    aging_factor = 1 + pow(avg_stress, 1.3)
+    overall_health = max(0, min(100, overall_health))
 
-    base_health = 100 - (avg_stress * 50)
-
-    health = base_health / aging_factor
-
-    health = max(0, min(100, health))
-
-    # Non-linear life curve (accelerates after mid-life)
-    predicted_life = round(20 * pow(health / 100, 1.4), 2)
+    predicted_life = round(20 * pow(overall_health / 100, 1.4), 2)
 
     risk = "Low"
-    if health < 70:
+    if overall_health < 70:
         risk = "Moderate"
-    if health < 50:
+    if overall_health < 50:
         risk = "High"
-    if health < 30:
+    if overall_health < 30:
         risk = "Critical"
 
     return {
-        "health_score": round(health, 2),
+        "overall_health": round(overall_health, 2),
         "predicted_life_years": predicted_life,
         "risk_level": risk,
-        "avg_stress_index": round(avg_stress, 4)
+        "engine_health": round(engine_health, 2),
+        "battery_health": round(battery_health, 2),
+        "fuel_system_health": round(fuel_system_health, 2),
+        "drivetrain_health": round(drivetrain_health, 2)
     }
