@@ -1,0 +1,195 @@
+
+
+/* ===============================
+   Fleet Analytics Styling
+=============================== */
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #0f0f0f;
+    color: #ffffff;
+}
+
+.layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 220px;
+    background: #151515;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.sidebar h2 {
+    margin-bottom: 30px;
+    color: #00ff88;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+}
+
+.sidebar li {
+    margin-bottom: 15px;
+}
+
+.sidebar a {
+    color: #cccccc;
+    text-decoration: none;
+}
+
+.sidebar a:hover {
+    color: #00ff88;
+}
+
+.content {
+    flex: 1;
+    padding: 40px;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+/* ===============================
+   Cards (Match Dashboard)
+=============================== */
+
+.cards {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.card {
+    background: #1a1a1a;
+    padding: 20px;
+    border-radius: 8px;
+    flex: 1;
+    box-shadow: 0 0 15px rgba(0, 255, 136, 0.08);
+}
+
+.card h3 {
+    margin-top: 0;
+    font-size: 16px;
+    color: #00ff88;
+}
+
+.card p {
+    font-size: 24px;
+    margin: 10px 0 0 0;
+    font-weight: 600;
+}
+
+/* ===============================
+   Chart Sections
+=============================== */
+
+.chart-section {
+    margin-bottom: 50px;
+}
+
+.chart-section h2 {
+    margin-bottom: 20px;
+    font-weight: 500;
+    color: #e0e0e0;
+}
+
+.chart-section canvas {
+    width: 100% !important;
+    height: 350px !important;
+    background: #1a1a1a;
+    border-radius: 10px;
+}
+
+/* ===============================
+   Responsive Improvements
+=============================== */
+
+@media (max-width: 1024px) {
+    .cards {
+        flex-direction: column;
+    }
+}
+
+.kpi-good {
+    box-shadow: 0 0 20px rgba(0,255,136,0.3);
+    border: 1px solid rgba(0,255,136,0.4);
+}
+
+.kpi-warning {
+    box-shadow: 0 0 20px rgba(255,165,0,0.3);
+    border: 1px solid rgba(255,165,0,0.4);
+}
+
+.kpi-danger {
+    box-shadow: 0 0 20px rgba(255,0,0,0.3);
+    border: 1px solid rgba(255,0,0,0.4);
+}
+
+.heatmap-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 15px;
+}
+
+.heatmap-cell {
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 13px;
+    transition: 0.3s ease;
+}
+
+.heatmap-cell:hover {
+    transform: translateY(-4px);
+}
+
+.heatmap-low { background: rgba(0,255,136,0.15); }
+.heatmap-moderate { background: rgba(255,215,0,0.15); }
+.heatmap-high { background: rgba(255,140,0,0.15); }
+.heatmap-critical { background: rgba(255,0,0,0.15); }
+
+.heatmap-health {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.time-filter {
+    margin: 15px 0 25px 0;
+    display: flex;
+    gap: 10px;
+}
+
+.time-filter button {
+    appearance: none;
+    -webkit-appearance: none;
+
+    background: #1a1a1a;
+    color: #cccccc;
+
+    border: 1px solid #2a2a2a;
+    padding: 8px 16px;
+
+    border-radius: 6px;
+    cursor: pointer;
+
+    font-size: 13px;
+    font-weight: 500;
+
+    transition: all 0.2s ease;
+}
+
+.time-filter button:hover {
+    border-color: #00ff88;
+    color: #00ff88;
+}
+
+.time-filter button.active {
+    background: #00ff88;
+    color: #000;
+    border-color: #00ff88;
+    font-weight: 600;
+}

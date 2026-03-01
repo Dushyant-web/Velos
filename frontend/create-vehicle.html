@@ -1,0 +1,86 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Vehicle - Velos</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/create-vehicle.css">
+    <script src="js/auth.js"></script>
+    <script>requireAuth();</script>
+</head>
+
+<body>
+
+<div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <h2>Velos</h2>
+        <ul>
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="vehicles.html">Vehicles</a></li>
+            <li><a href="alerts.html">Alerts</a></li>
+            <li><a href="analytics.html">Analytics</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="content">
+
+        <h1>Create New Vehicle</h1>
+
+        <div class="card" style="max-width:600px;">
+
+            <div style="display:flex; flex-direction:column; gap:15px; margin-top:20px;">
+
+                <input type="text" id="vNumber" placeholder="Number Plate" required>
+                <input type="text" id="vName" placeholder="Vehicle Name" required>
+                <input type="text" id="vModel" placeholder="Model" required>
+                <input type="number" id="vYear" placeholder="Year" required>
+                <input type="text" id="vImage" placeholder="Image URL (optional)">
+
+                <button onclick="createVehicle()" class="add-vehicle-btn">
+                    Create Vehicle
+                </button>
+
+            </div>
+
+        </div>
+
+    </main>
+
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+
+<script>
+async function createVehicle() {
+
+    const payload = {
+        number_plate: document.getElementById("vNumber").value,
+        name: document.getElementById("vName").value,
+        model: document.getElementById("vModel").value,
+        year: parseInt(document.getElementById("vYear").value),
+        image_url: document.getElementById("vImage").value
+    };
+
+    const res = await authFetch(`${BASE_URL}/vehicles`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+        alert("Vehicle Created Successfully");
+        window.location.href = "vehicles.html";
+    } else {
+        alert("Error creating vehicle");
+    }
+}
+</script>
+
+</body>
+</html>

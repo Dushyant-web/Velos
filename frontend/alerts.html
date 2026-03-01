@@ -1,0 +1,116 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Alerts Center - Velos</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/alerts.css">
+
+    <!-- Auth Protection -->
+    <script src="js/auth.js"></script>
+    <script>
+        requireAuth();
+    </script>
+</head>
+
+<body>
+
+<div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <h2>Velos</h2>
+        <ul>
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="vehicles.html">Vehicles</a></li>
+            <li><a href="alerts.html" class="active">Alerts</a></li>
+            <li><a href="analytics.html">Analytics</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="content">
+
+        <h1>Alerts Center</h1>
+
+        <!-- Summary Cards -->
+        <div class="alert-cards">
+            <div class="alert-card">
+                <h3>Total Active Alerts</h3>
+                <p id="totalAlerts">--</p>
+            </div>
+
+            <div class="alert-card">
+                <h3>Critical Alerts</h3>
+                <p id="criticalAlerts">--</p>
+            </div>
+
+            <div class="alert-card">
+                <h3>Resolved Today</h3>
+                <p id="resolvedToday">--</p>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="alert-filters">
+
+            <select id="severityFilter" onchange="applyAlertFilters()">
+                <option value="">All Severity</option>
+                <option value="Low">Low</option>
+                <option value="Moderate">Moderate</option>
+                <option value="High">High</option>
+                <option value="Critical">Critical</option>
+            </select>
+
+            <select id="statusFilter" onchange="applyAlertFilters()">
+                <option value="">All Status</option>
+                <option value="Active">Active</option>
+                <option value="Resolved">Resolved</option>
+            </select>
+
+            <select id="vehicleFilter" onchange="applyAlertFilters()">
+                <option value="">All Vehicles</option>
+            </select>
+
+        </div>
+
+        <!-- Alerts Table -->
+        <div class="alert-table-wrapper">
+            <table id="alertsTable">
+                <thead>
+                    <tr>
+                        <th>Vehicle</th>
+                        <th>Component</th>
+                        <th>Severity</th>
+                        <th>Description</th>
+                        <th>Timestamp</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- JS Populates -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Alert Frequency Chart -->
+        <div class="alert-chart-section">
+            <h2>Alert Frequency (Last 30 Days)</h2>
+            <canvas id="alertFrequencyChart"></canvas>
+        </div>
+
+    </main>
+
+</div>
+
+<!-- Scripts -->
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="js/alerts.js"></script>
+
+</body>
+</html>

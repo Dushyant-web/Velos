@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard - Velos</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <!-- Auth Protection -->
+    <script src="js/auth.js"></script>
+    <script>
+        requireAuth();
+    </script>
+</head>
+
+<body>
+
+<div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <h2>Velos</h2>
+        <ul>
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="vehicles.html">Vehicles</a></li>
+            <li><a href="alerts.html">Alerts</a></li>
+            <li><a href="analytics.html">Analytics</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="content">
+
+        <h1>Fleet Dashboard</h1>
+
+        <div class="cards">
+            <div class="card">
+                <h3>Best Vehicle</h3>
+                <p id="bestVehicle">--</p>
+            </div>
+        
+            <div class="card">
+                <h3>Worst Vehicle</h3>
+                <p id="worstVehicle">--</p>
+            </div>
+        </div>
+
+        <!-- Overview Cards -->
+        <div class="cards">
+
+            <div class="card">
+                <h3>Total Vehicles</h3>
+                <p id="totalVehicles">--</p>
+            </div>
+
+            <div class="card">
+                <h3>Average Fleet Health</h3>
+                <p id="averageHealth">--</p>
+            </div>
+
+
+        </div>
+
+        <!-- Risk Distribution Chart -->
+        <div class="chart-wrapper">
+            <h2>Risk Distribution</h2>
+            <canvas id="riskChart"></canvas>
+        </div>
+
+        <div class="chart-wrapper">
+            <h2>Worst Vehicles by Health</h2>
+            <canvas id="rankingChart"></canvas>
+        </div>
+
+        <div style="margin-bottom:20px;">
+            <select id="sortSelect" onchange="applySort()">
+                <option value="health">Sort by Health</option>
+                <option value="risk">Sort by Risk</option>
+                <option value="year">Sort by Year</option>
+            </select>
+        </div>
+
+        <!-- Fleet Ranking Table -->
+        <div class="table-section">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h2 style="margin:0;">Fleet Ranking (Worst → Best)</h2>
+                <button class="add-vehicle-btn" onclick="goToCreateVehicle()">
+                    + Add Vehicle
+                </button>
+            </div>
+
+            <table id="rankingTable">
+                <thead>
+                    <tr>
+                        <th>Vehicle</th>
+                        <th>Model</th>
+                        <th>Year</th>
+                        <th>Health</th>
+                        <th>Predicted Life</th>
+                        <th>Risk</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- JS will populate -->
+                </tbody>
+            </table>
+        </div>
+
+        <div id="vehicleViewCard" class="vehicle-view-card" style="display:none;">
+
+    <div class="view-header">
+            <h2 id="viewVehicleTitle"></h2>
+            <button onclick="closeVehicleView()">Close</button>
+        </div>
+
+        <div id="viewHealthInfo" class="health-info"></div>
+
+        <div class="telemetry-section">
+            <h3>Latest Telemetry</h3>
+            <div id="viewTelemetry"></div>
+        </div>
+
+        <div class="map-wrapper">
+            <div id="viewMap"></div>
+        </div>
+
+    </div>
+
+    </main>
+
+</div>
+
+<!-- Script Order -->
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="js/dashboard.js"></script>
+
+
+
+</body>
+</html>

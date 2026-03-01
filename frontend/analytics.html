@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fleet Analytics - Velos</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <script src="js/auth.js"></script>
+    <script>requireAuth();</script>
+</head>
+
+<body>
+
+<div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <h2>Velos</h2>
+        <ul>
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="vehicles.html">Vehicles</a></li>
+            <li><a href="alerts.html">Alerts</a></li>
+            <li><a href="analytics.html" style="color:#00ff88;">Analytics</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="content">
+
+        <h1>Fleet Analytics Intelligence</h1>
+
+        <!-- Overview Row -->
+        <div class="cards">
+            <div class="card">
+                <h3>Fleet Average Health</h3>
+                <p id="fleetAvgHealth">--</p>
+            </div>
+            <div class="card">
+                <h3>Total Estimated Cost</h3>
+                <p id="fleetTotalCost">--</p>
+            </div>
+            <div class="card">
+                <h3>High Risk Vehicles</h3>
+                <p id="fleetHighRisk">--</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Fleet Volatility Score</h3>
+            <p id="fleetVolatility">--</p>
+        </div>
+
+        <div class="time-filter">
+            <button class="active" onclick="setRange(7)">7 Days</button>
+            <button onclick="setRange(30)">30 Days</button>
+            <button onclick="setRange(90)">90 Days</button>
+        </div>
+
+        <!-- Health Comparison Chart -->
+        <div class="chart-section">
+            <h2>Fleet Health Comparison</h2>
+            <canvas id="fleetHealthChart"></canvas>
+        </div>
+
+        <div class="heatmap-section">
+            <h2>Fleet Risk Heatmap</h2>
+            <div id="riskHeatmap" class="heatmap-grid"></div>
+        </div>
+
+
+        <!-- Risk Distribution -->
+        <div class="chart-section">
+            <h2>Risk Bucket Segmentation</h2>
+            <canvas id="fleetRiskChart"></canvas>
+        </div>
+
+        <!-- Cost Forecast -->
+        <div class="chart-section">
+            <h2>Maintenance Cost Forecast</h2>
+            <canvas id="fleetCostChart"></canvas>
+        </div>
+
+    </main>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="js/analytics.js"></script>
+
+</body>
+</html>

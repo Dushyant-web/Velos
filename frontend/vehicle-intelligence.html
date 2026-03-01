@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vehicle Intelligence - Velos</title>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/vehicle-intelligence.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script src="js/auth.js"></script>
+    <script>
+        requireAuth();
+    </script>
+</head>
+
+<body>
+
+<div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <h2>Velos</h2>
+        <ul>
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="vehicles.html">Vehicles</a></li>
+            <li><a href="alerts.html">Alerts</a></li>
+            <li><a href="analytics.html">Analytics</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="content">
+
+        <div class="intelligence-container">
+
+            <h1 id="vehicleTitle">Vehicle Intelligence</h1>
+
+            <!-- KPI CARDS -->
+            <div class="intelligence-grid">
+
+                <div class="kpi-card">
+                    <div class="kpi-title">Current Health</div>
+                    <div class="kpi-value" id="currentHealth">--%</div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-title">Risk Level</div>
+                    <div class="kpi-value" id="riskLevel">--</div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-title">Life Remaining</div>
+                    <div class="kpi-value" id="lifeRemaining">--</div>
+                </div>
+
+            </div>
+
+            <!-- PROJECTION SIMULATOR -->
+            <div class="simulator-card">
+
+                <h3>Projection Simulator</h3>
+
+                <div class="projection-inputs">
+                    <input type="number" id="projYears" placeholder="Years" value="1" min="0">
+                    <input type="number" id="projMonths" placeholder="Months" value="0" min="0">
+                    <input type="number" id="projHours" placeholder="Hours" value="0" min="0">
+                    <button onclick="runProjection()">Run Projection</button>
+                </div>
+
+                <div id="projectionSummary" class="projection-summary"></div>
+
+                <button onclick="runScenarioComparison()" class="compare-btn">
+                    Compare Scenarios
+                </button>
+
+            </div>
+
+            <!-- CHART -->
+            <div class="chart-card">
+                <canvas id="healthTrendChart"></canvas>
+            </div>
+            <div id="scenarioSummary" class="scenario-summary"></div>
+
+            <div class="recommendations-card">
+                <h3>AI Recommendations</h3>
+                <div id="recommendationsContainer"></div>
+            </div>
+
+        </div>
+
+    </main>
+
+</div>
+
+<!-- Scripts -->
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/vehicle-intelligence.js"></script>
+
+</body>
+</html>

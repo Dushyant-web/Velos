@@ -1,33 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Vehicle Telemetry Dashboard</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0/dist/chartjs-plugin-annotation.min.js"></script>
+    <title>Velos - Fleet Intelligence Platform</title>
+    <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
 
-    <div class="container">
-        <h1>Vehicle Telemetry</h1>
+<div class="landing">
 
-        <input type="text" id="vehicleInput" placeholder="Enter Number Plate">
-        <button onclick="getTelemetry()">Get Latest Data</button>
+    <h1>Velos</h1>
+    <p class="tagline">
+        Predictive Fleet Intelligence Platform
+    </p>
 
-        <div id="result"></div>
-        <div id="map" style="height: 400px; margin-top: 20px;"></div>
-        <canvas id="healthChart" width="400" height="200"></canvas>
-        <input type="number" id="yearsInput" placeholder="Years">
-        <input type="number" id="monthsInput" placeholder="Months">
-        <input type="number" id="hoursInput" placeholder="Hours">
-        <button onclick="projectLife()">Project</button>
-        <div id="projectionResult"></div>
+    <p class="description">
+        Live Telemetry • AI Risk Analysis • Life Projection • What-If Simulation • Fleet Analytics
+    </p>
+
+    <div class="buttons">
+        <a href="login.html" class="btn primary">Login</a>
+        <a href="signup.html" class="btn secondary">Sign Up</a>
     </div>
-    
-    
 
-    <script src="script.js"></script>
+</div>
+
 </body>
 </html>
