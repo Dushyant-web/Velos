@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from fastapi.security import OAuth2PasswordRequestForm
-from .auth_utils import get_password_hash
 
 from .database import get_db
 from .models import User, Fleet
@@ -23,11 +22,6 @@ class RegisterSchema(BaseModel):
     fleet_name: str
 
 
-class LoginSchema(BaseModel):
-    email: EmailStr
-    password: str
-
-
 # =========================
 # REGISTER
 # =========================
@@ -35,7 +29,7 @@ class LoginSchema(BaseModel):
 @router.post("/register")
 def register(data: RegisterSchema, db: Session = Depends(get_db)):
 
-    # Check if email exists
+    # Check if email already exists
     existing_user = db.query(User).filter(User.email == data.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -47,24 +41,27 @@ def register(data: RegisterSchema, db: Session = Depends(get_db)):
     db.refresh(fleet)
 
     # Hash password
-    hashed_pw = get_password_hash(data.password)
+    hashed_pw = hash_password(data.password)
 
     # Create Admin User
     user = User(
         email=data.email,
         hashed_password=hashed_pw,
-        role="admin",
+        role="admin",  # First user of fleet becomes admin
         fleet_id=fleet.id
     )
 
     db.add(user)
     db.commit()
+    db.refresh(user)
 
     return {
         "message": "Fleet created successfully",
         "fleet_id": str(fleet.id),
         "admin_email": user.email
     }
+
+
 # =========================
 # LOGIN
 # =========================
@@ -74,6 +71,7 @@ def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
+
     user = db.query(User).filter(User.email == form_data.username).first()
 
     if not user:
