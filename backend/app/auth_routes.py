@@ -29,36 +29,51 @@ class RegisterSchema(BaseModel):
 @router.post("/register")
 def register(data: RegisterSchema, db: Session = Depends(get_db)):
 
-    # Check if email already exists
+    # Check if email exists
     existing_user = db.query(User).filter(User.email == data.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    # Create Fleet
-    fleet = Fleet(name=data.fleet_name)
-    db.add(fleet)
-    db.commit()
-    db.refresh(fleet)
+    # 🔥 Check if any admin exists
+    existing_admin = db.query(User).filter(User.role == "admin").first()
+
+    # If no admin exists → first user becomes admin
+    if not existing_admin:
+        role = "admin"
+
+        # Create single fleet only once
+        fleet = Fleet(name=data.fleet_name)
+        db.add(fleet)
+        db.commit()
+        db.refresh(fleet)
+
+        fleet_id = fleet.id
+
+    else:
+        # Other users become operator
+        role = "operator"
+
+        # Attach to existing admin's fleet
+        fleet_id = existing_admin.fleet_id
 
     # Hash password
     hashed_pw = hash_password(data.password)
 
-    # Create Admin User
+    # Create user
     user = User(
         email=data.email,
         hashed_password=hashed_pw,
-        role="admin",  # First user of fleet becomes admin
-        fleet_id=fleet.id
+        role=role,
+        fleet_id=fleet_id
     )
 
     db.add(user)
     db.commit()
-    db.refresh(user)
 
     return {
-        "message": "Fleet created successfully",
-        "fleet_id": str(fleet.id),
-        "admin_email": user.email
+        "message": "User registered successfully",
+        "role": role,
+        "email": user.email
     }
 
 
