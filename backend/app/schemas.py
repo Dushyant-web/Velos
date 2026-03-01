@@ -1,4 +1,5 @@
-from pydantic import BaseModel
+
+from pydantic import BaseModel, EmailStr
 
 
 # =========================
@@ -37,3 +38,8 @@ class VehicleResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+class RegisterSchema(BaseModel):
+    email: EmailStr
+    password: str
+    fleet_name: str

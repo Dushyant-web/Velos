@@ -34,33 +34,36 @@ class LoginSchema(BaseModel):
 @router.post("/register")
 def register(data: RegisterSchema, db: Session = Depends(get_db)):
 
+    # Check if email exists
     existing_user = db.query(User).filter(User.email == data.email).first()
-
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
+    # Create Fleet
+    fleet = Fleet(name=data.fleet_name)
+    db.add(fleet)
+    db.commit()
+    db.refresh(fleet)
+
+    # Hash password
+    hashed_pw = get_password_hash(data.password)
+
+    # Create Admin User
     user = User(
         email=data.email,
-        hashed_password=hash_password(data.password),
-        role="fleet_manager"
+        hashed_password=hashed_pw,
+        role="admin",
+        fleet_id=fleet.id
     )
 
     db.add(user)
     db.commit()
-    db.refresh(user)
 
-    # Auto-create fleet
-    fleet = Fleet(
-        name=data.fleet_name,
-        owner_id=user.id
-    )
-
-    db.add(fleet)
-    db.commit()
-
-    return {"message": "User registered successfully"}
-
-
+    return {
+        "message": "Fleet created successfully",
+        "fleet_id": str(fleet.id),
+        "admin_email": user.email
+    }
 # =========================
 # LOGIN
 # =========================
