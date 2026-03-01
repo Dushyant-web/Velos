@@ -4,17 +4,49 @@ import time
 
 BASE_URL = "https://velos-production.up.railway.app"
 
+# 🔐 Your credentials (CHANGE THESE)
+EMAIL = "jarvis.projects.notifications@gmail.com"
+PASSWORD = "TestPass"
+
 
 def clamp(value, min_val, max_val):
     return max(min_val, min(value, max_val))
 
 
-# 🔥 Fetch vehicles dynamically from backend
-def fetch_registered_vehicles():
+# 🔐 LOGIN FUNCTION
+def login():
     try:
-        response = requests.get(f"{BASE_URL}/vehicles")
+        response = requests.post(
+            f"{BASE_URL}/auth/login",
+            data={
+                "username": EMAIL,   # OAuth2 requires 'username'
+                "password": PASSWORD
+            }
+        )
+
         if response.status_code != 200:
-            print("❌ Failed to fetch vehicles")
+            print("❌ Login failed:", response.text)
+            return None
+
+        token = response.json()["access_token"]
+        print("🔐 Logged in successfully\n")
+        return token
+
+    except Exception as e:
+        print("🚨 Login error:", e)
+        return None
+
+
+# 🔥 Fetch vehicles securely
+def fetch_registered_vehicles(headers):
+    try:
+        response = requests.get(
+            f"{BASE_URL}/vehicles",
+            headers=headers
+        )
+
+        if response.status_code != 200:
+            print("❌ Failed to fetch vehicles:", response.text)
             return []
 
         data = response.json()
@@ -25,8 +57,18 @@ def fetch_registered_vehicles():
         return []
 
 
+# --- LOGIN FIRST ---
+token = login()
+
+if not token:
+    exit()
+
+HEADERS = {
+    "Authorization": f"Bearer {token}"
+}
+
 # --- Get vehicles from DB ---
-vehicles = fetch_registered_vehicles()
+vehicles = fetch_registered_vehicles(HEADERS)
 
 if not vehicles:
     print("⚠️ No vehicles registered. Simulation stopped.")
@@ -34,7 +76,6 @@ if not vehicles:
 
 print(f"🚗 Starting simulation for {len(vehicles)} vehicles...\n")
 print(f"📡 Sending data to: {BASE_URL}\n")
-
 
 # Initialize state per vehicle
 vehicle_state = {}
@@ -51,16 +92,13 @@ for v in vehicles:
         "tire_pressure": 32.0
     }
 
-
 try:
     while True:
 
-        # 🔄 Re-fetch vehicles every loop (auto-scale if new vehicles added)
-        vehicles = fetch_registered_vehicles()
+        vehicles = fetch_registered_vehicles(HEADERS)
 
         for v in vehicles:
 
-            # If new vehicle added after simulation started
             if v not in vehicle_state:
                 vehicle_state[v] = {
                     "speed": random.randint(40, 80),
@@ -75,14 +113,14 @@ try:
 
             state = vehicle_state[v]
 
-            # --- SPEED ---
+            # SPEED
             state["speed"] += random.randint(-5, 5)
             state["speed"] = clamp(state["speed"], 0, 140)
 
-            # --- RPM ---
+            # RPM
             state["rpm"] = clamp(state["speed"] * random.uniform(30, 45), 800, 4500)
 
-            # --- ENGINE TEMP ---
+            # ENGINE TEMP
             if state["speed"] > 80:
                 state["engine_temp"] += random.uniform(0.2, 0.8)
             else:
@@ -93,23 +131,23 @@ try:
 
             state["engine_temp"] = clamp(state["engine_temp"], 75, 120)
 
-            # --- FUEL ---
+            # FUEL
             state["fuel"] -= random.uniform(0.02, 0.1)
             if state["fuel"] <= 5:
                 state["fuel"] = 60.0
             state["fuel"] = clamp(state["fuel"], 0, 100)
 
-            # --- BATTERY ---
+            # BATTERY
             state["battery_level"] -= random.uniform(0.005, 0.02)
             if state["battery_level"] < 40:
                 state["battery_level"] += random.uniform(1, 3)
             state["battery_level"] = clamp(state["battery_level"], 40, 100)
 
-            # --- GPS ---
+            # GPS
             state["latitude"] += random.uniform(-0.0005, 0.0005)
             state["longitude"] += random.uniform(-0.0005, 0.0005)
 
-            # --- TIRE PRESSURE ---
+            # TIRE PRESSURE
             state["tire_pressure"] += random.uniform(-0.05, 0.05)
             state["tire_pressure"] = clamp(state["tire_pressure"], 30, 35)
 
@@ -119,7 +157,11 @@ try:
             }
 
             try:
-                response = requests.post(f"{BASE_URL}/telemetry", json=payload)
+                response = requests.post(
+                    f"{BASE_URL}/telemetry",
+                    json=payload,
+                    headers=HEADERS
+                )
 
                 if response.status_code != 200:
                     print(f"❌ Error {v}: {response.status_code} - {response.text}")

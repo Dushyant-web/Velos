@@ -45,3 +45,7 @@ app.include_router(auth_router)
 @app.get("/")
 def root():
     return {"message": "Vehicle Telemetry SQL Backend Running"}
+
+@app.on_event("startup")
+def create_tables():
+    Base.metadata.create_all(bind=engine)
