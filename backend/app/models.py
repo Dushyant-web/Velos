@@ -5,7 +5,13 @@ from sqlalchemy.dialects.postgresql import UUID
 from .database import Base
 from datetime import datetime
 import uuid
+from enum import Enum
 
+
+class UserRole(str, Enum):
+    admin = "admin"
+    fleet_manager = "fleet_manager"
+    operator = "operator"
 
 # =========================
 # TELEMETRY TABLE
@@ -58,13 +64,14 @@ class User(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
-    role = Column(String, default="fleet_manager")  # admin / fleet_manager
+
+    role = Column(String, default="operator")  # admin / fleet_manager / operator
+
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    fleet = relationship("Fleet", back_populates="owner", uselist=False)
-
-
+    fleet_id = Column(UUID(as_uuid=True), ForeignKey("fleets.id"))
+    fleet = relationship("Fleet", back_populates="users")
 # =========================
 # FLEET TABLE
 # =========================
@@ -74,12 +81,10 @@ class Fleet(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False)
 
-    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    owner = relationship("User", back_populates="fleet")
+    users = relationship("User", back_populates="fleet")
     vehicles = relationship("Vehicle", back_populates="fleet")
-
 
 # =========================
 # VEHICLE TABLE (UPDATED)

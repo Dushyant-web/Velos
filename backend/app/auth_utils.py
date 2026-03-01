@@ -37,5 +37,24 @@ def get_current_user(
 
 def require_admin(current_user: User = Depends(get_current_user)):
     if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
+        raise HTTPException(
+            status_code=403,
+            detail="Admin privileges required"
+        )
+    return current_user
+
+def require_fleet_manager(current_user: User = Depends(get_current_user)):
+    if current_user.role not in ["admin", "fleet_manager"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Fleet manager privileges required"
+        )
+    return current_user
+
+def require_operator(current_user: User = Depends(get_current_user)):
+    if current_user.role not in ["admin", "fleet_manager", "operator"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Operator privileges required"
+        )
     return current_user
